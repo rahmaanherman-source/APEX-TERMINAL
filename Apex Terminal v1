@@ -4872,5 +4872,108 @@ It will define:
 • The philosophy
 • The activation phrase
 • The rules every module must obey
+# Y GODSPEED — Prime Directive Slab
 
+## 1. The Law
+
+**One system. One owner. One truth.**
+
+- **One system:** All modules—Engine Six, APEX Terminal, Hub, OmniVault—behave as one organism.
+- **One owner:** Authority is explicit, cryptographically enforced, and never ambiguous.
+- **One truth:** State is auditable, replayable, and consistent across phone, computer, and cloud.
+
+If a module breaks this law, it is not GODSPEED.
+
+---
+
+## 2. The Standard
+
+**BOOT → VERIFY → ACTIVATE → EXECUTE → AUDIT**
+
+Every GODSPEED-compliant module must:
+
+- **BOOT:** Initialize config, identity, ECS, and platform.
+- **VERIFY:** Confirm permissions, owner-lock, and integrity.
+- **ACTIVATE:** Bind UI, engine, agents, and commerce hooks.
+- **EXECUTE:** Perform work—frames, scripts, transactions—in real time.
+- **AUDIT:** Log every meaningful action to OmniVault.
+
+This standard applies equally to **phone** and **computer**—two formats, one machine.
+
+---
+
+## 3. The Cycle
+
+**CLEAN → IMPROVE → FREEZE**
+
+- **CLEAN:** Remove noise, broken flows, dead code, unclear UX.
+- **IMPROVE:** Refine architecture, performance, clarity, and power.
+- **FREEZE:** Lock stable states as baselines, versions, and releases.
+
+No GODSPEED system ships without passing this cycle.
+
+---
+
+## 4. The Architecture
+
+**Layers that must exist and interlock:**
+
+- **Identity:** Gatekeeper—auth, roles, owner-lock.
+- **Security:** Lightspeed Forge—encryption, signatures, tokens.
+- **Audit:** OmniVault—logs, events, snapshots, history.
+- **Engine:** Engine Six—ECS, runtime, agents, scripting.
+- **Terminal:** APEX Terminal—IDE, panels, command palette.
+- **Commerce:** APEX Hub—Shopify, Stripe, entitlements.
+- **AI:** AI-SIX—agents, tools, memory, sessions.
+- **Platform:** Phone + Computer—same engine, different shells.
+
+Architecture rule: **No orphan module. Everything must plug into GODSPEED.**
+
+---
+
+## 5. The Philosophy
+
+- **Real-time, real-life:** The engine is not a toy; it runs businesses, worlds, and workflows.
+- **Extension or engine:** Engine Six can be a standalone engine or an extension living inside APEX Terminal.
+- **Two formats, one design:** Phone and computer are different views of the same machine, not separate systems.
+- **Owner-first:** The person who builds and runs it is the authority; tools serve, never override.
+- **Clarity over complexity:** Power is allowed; confusion is not.
+
+---
+
+## 6. The Activation Phrase
+
+> **Y GODSPEED**
+
+Meaning:
+
+- **“Why GODSPEED?”** → Because this is the standard everything must obey.
+- Spoken or written, it signals: **align to the law, follow the cycle, respect the architecture.**
+
+Any module that hears **Y GODSPEED** must re-check:
+
+- Identity  
+- Permissions  
+- Audit hooks  
+- Engine bindings  
+- Commerce links  
+
+---
+
+## 7. The Rules Every Module Must Obey
+
+1. **Obey the Law:** One system, one owner, one truth.
+2. **Follow the Standard:** BOOT → VERIFY → ACTIVATE → EXECUTE → AUDIT.
+3. **Respect the Cycle:** CLEAN → IMPROVE → FREEZE before calling anything “done.”
+4. **Plug into Architecture:** Identity, Security, Audit, Engine, Terminal, Commerce, AI, Platform.
+5. **Be Dual-Format:** Must run coherently across phone and computer—same state, same rules.
+6. **Log Everything That Matters:** OmniVault must be able to replay critical actions.
+7. **Never Break Owner-Lock:** No hidden authority, no silent overrides.
+8. **Stay Real-Time:** Changes in scripts, scenes, or commerce reflect live in the engine.
+9. **Stay Extensible:** New modules must be able to join without breaking the law.
+10. **Answer to Y GODSPEED:** On activation, re-align to these rules.
+
+---
+
+This slab is the **contract**: if it doesn’t follow this, it isn’t GODSPEED, and it isn’t Engine Six.
 
