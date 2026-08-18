@@ -32,7 +32,3 @@ export async function runBootstrap(halt: HaltController = defaultHaltController)
     halt.halt(`Verification failed: ${message}`);
   }
 }
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  void runBootstrap();
-}
