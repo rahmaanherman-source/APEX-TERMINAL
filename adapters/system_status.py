@@ -1,47 +1,59 @@
 """System Status adapter boundary.
 
-The adapter accepts an externally observed runtime state. It does not fabricate
-health or version information. The caller supplies the observation obtained
-from the real runtime-health source.
+This adapter is intentionally thin. It obtains/accepts only externally
+observed runtime data and delegates every verification decision to the
+ deterministic comparator. It never manufactures VERIFIED state.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Mapping
+from typing import Any, Mapping
 
-from core.comparator import VerificationResult, compare_exact_state
-
-
-@dataclass(frozen=True)
-class SystemStatusGoal:
-    service: str
-    required_state: str
-    required_version: str
-
-    def as_mapping(self) -> dict[str, str]:
-        return {
-            "service": self.service,
-            "state": self.required_state,
-            "version": self.required_version,
-        }
+from core.comparator import SYSTEM_STATUS_DESIRED, ComparatorResult, compare_system_status
 
 
-def verify_system_status(
-    goal: SystemStatusGoal,
-    observation: Mapping[str, object] | None,
-) -> VerificationResult:
-    """Compare runtime observation against an explicit system-status goal.
+def compare_observation(
+    actual: Mapping[str, Any] | None,
+    execution_id: str | None = None,
+    desired: Mapping[str, Any] | None = None,
+) -> ComparatorResult:
+    """Send an external System Status observation through the truth gate."""
 
-    Missing observations are UNVERIFIED. Exact mismatch enters HALT_REEVALUATE.
-    """
+    return compare_system_status(
+        actual=actual,
+        desired=desired or SYSTEM_STATUS_DESIRED,
+        execution_id=execution_id,
+    )
 
-    if observation is None:
-        return compare_exact_state(None, goal.as_mapping())
 
-    normalized = {
-        "service": observation.get("service"),
-        "state": observation.get("actual_state"),
-        "version": observation.get("version"),
+def blocked_observation(
+    execution_id: str,
+    reason: str = "HEALTH_ENDPOINT_UNREACHABLE",
+) -> dict[str, Any]:
+    """Represent an unreachable/permission-blocked external health source."""
+
+    return {
+        "execution_id": execution_id,
+        "adapter": "system_status",
+        "status": "BLOCKED",
+        "reason": reason,
     }
-    return compare_exact_state(normalized, goal.as_mapping())
+
+
+def build_observation(
+    execution_id: str,
+    payload: Mapping[str, Any],
+    health_ok: bool,
+    latency_ms: float | int,
+    readback_sha256: str | None,
+) -> dict[str, Any]:
+    """Construct the canonical adapter observation from real read-back data."""
+
+    return {
+        "execution_id": execution_id,
+        "adapter": "system_status",
+        "payload": dict(payload),
+        "health_ok": health_ok,
+        "latency_ms": latency_ms,
+        "readback_sha256": readback_sha256,
+    }
