@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unreal_state.schema.json",
+  "title": "GODSPEED Unreal Canonical State",
+  "description": "Observed Unreal Engine state returned by an adapter. This schema carries evidence; it never declares verification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["execution_id","adapter","engine","engine_version","project","timestamp","operation","state","metrics","artifact","health_ok","latency_ms","readback_sha256"],
+  "properties": {
+    "execution_id": {"type":"string","minLength":1},
+    "adapter": {"const":"unreal"},
+    "engine": {"const":"Unreal Engine"},
+    "engine_version": {"type":"string","minLength":1},
+    "project": {"type":"object","additionalProperties":false,"required":["name","path"],"properties":{"name":{"type":"string","minLength":1},"path":{"type":"string","minLength":1},"target_platform":{"type":"string"},"build_configuration":{"type":"string"}}},
+    "timestamp": {"type":"string","format":"date-time"},
+    "operation": {"type":"string","enum":["STATUS","BUILD","PLAY","RENDER","PACKAGE","IMPORT","EXPORT","TEST"]},
+    "state": {"type":"object","additionalProperties":false,"required":["world_loaded","editor_responsive","render_pipeline_ready"],"properties":{"world_loaded":{"type":"boolean"},"editor_responsive":{"type":"boolean"},"render_pipeline_ready":{"type":"boolean"},"nanite_enabled":{"type":"boolean"},"lumen_enabled":{"type":"boolean"},"ray_tracing_enabled":{"type":"boolean"},"packaged_build_ready":{"type":"boolean"}}},
+    "metrics": {"type":"object","additionalProperties":false,"required":["resolution_width","resolution_height","frame_rate","frame_time_ms","draw_calls","triangles","gpu_memory_mb"],"properties":{"resolution_width":{"type":"integer","minimum":1},"resolution_height":{"type":"integer","minimum":1},"frame_rate":{"type":"number","minimum":0},"frame_time_ms":{"type":"number","minimum":0},"draw_calls":{"type":"integer","minimum":0},"triangles":{"type":"integer","minimum":0},"gpu_memory_mb":{"type":"number","minimum":0},"cpu_time_ms":{"type":"number","minimum":0},"gpu_time_ms":{"type":"number","minimum":0}}},
+    "artifact": {"type":"object","additionalProperties":false,"required":["exists"],"properties":{"exists":{"type":"boolean"},"path":{"type":"string"},"sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"},"size_bytes":{"type":"integer","minimum":0},"format":{"type":"string"}}},
+    "health_ok": {"type":"boolean"},
+    "latency_ms": {"type":"number","minimum":0},
+    "readback_sha256": {"type":"string","pattern":"^[a-fA-F0-9]{64}$"}
+  }
+}
