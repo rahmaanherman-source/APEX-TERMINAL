@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "principle": "APEX connects and verifies; it does not clone or replace the provider.",
+  "providers": [
+    {"id":"github","modes":["api","web","cli","mcp"]},
+    {"id":"vercel","modes":["api","web","cli"]},
+    {"id":"replit","modes":["api","web"]},
+    {"id":"google-cloud","modes":["api","cli","web"]},
+    {"id":"aws","modes":["api","cli","web"]},
+    {"id":"azure","modes":["api","cli","web"]},
+    {"id":"digitalocean","modes":["api","cli","web"]},
+    {"id":"openai","modes":["api"]},
+    {"id":"google-ai-studio","modes":["api","web"]},
+    {"id":"blender","modes":["local","cli","python"]},
+    {"id":"unreal","modes":["local","cli"]},
+    {"id":"tripo","modes":["api","web"]},
+    {"id":"flutter","modes":["local","cli"]},
+    {"id":"lovable","modes":["web"]},
+    {"id":"base44","modes":["web"]},
+    {"id":"bolt","modes":["web"]},
+    {"id":"lark","modes":["api","web"]},
+    {"id":"meta","modes":["api","web"]},
+    {"id":"shopify","modes":["api","web"]},
+    {"id":"stripe","modes":["api"]},
+    {"id":"supabase","modes":["api","cli","web"]},
+    {"id":"firebase","modes":["api","cli","web"]},
+    {"id":"cloudflare","modes":["api","cli","web"]}
+  ],
+  "states":["AVAILABLE","INSTALLED","CONFIGURED","CONNECTED","TESTED","VERIFIED","FAILED","BLOCKED","UNVERIFIED"]
+}
