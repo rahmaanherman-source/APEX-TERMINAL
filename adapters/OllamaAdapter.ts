@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readbackSha256 } from "../core/slab/crypto";
+import { readbackSha256 as computeReadbackSha256 } from "../core/slab/crypto";
 import type { ApexAdapter, VerificationEvidence } from "../core/slab/SlabLifecycle";
 
 export interface OllamaAdapterOptions {
@@ -30,7 +30,7 @@ export class OllamaAdapter implements ApexAdapter {
     }
 
     const payload = (await response.json()) as Record<string, unknown>;
-    const readbackSha256 = await readbackSha256(payload);
+    const readbackSha256 = await computeReadbackSha256(payload);
 
     return {
       executionId,
