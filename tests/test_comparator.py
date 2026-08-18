@@ -16,7 +16,7 @@ def test_system_status_verified_when_observed_state_matches_contract():
         "payload": {
             "status": "SOVEREIGN_ONLINE",
             "uptime": 10.0,
-            "version": "3.0.OMEGA",
+            "version": "3.0.0.OMEGA",
             "timestamp": "2026-08-18T00:00:00Z",
         },
         "health_ok": True,
@@ -33,7 +33,7 @@ def test_system_status_fails_when_latency_exceeds_budget():
         "payload": {
             "status": "SOVEREIGN_ONLINE",
             "uptime": 10.0,
-            "version": "3.0.OMEGA",
+            "version": "3.0.0.OMEGA",
             "timestamp": "2026-08-18T00:00:00Z",
         },
         "health_ok": True,
