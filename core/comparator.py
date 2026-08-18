@@ -16,12 +16,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from math import isfinite
 from typing import Any, Mapping
 
 
-class VerificationStatus(str, Enum):
+class VerificationStatus(str):
     VERIFIED = "VERIFIED"
     FAILED = "FAILED"
     BLOCKED = "BLOCKED"
@@ -45,7 +44,7 @@ class ComparatorResult:
     tool: str
     delta: float
     epsilon: float
-    status: VerificationStatus
+    status: str
     checks: Mapping[str, bool]
     payload: Mapping[str, Any]
     latency_ms: float | int | None
@@ -59,7 +58,7 @@ class ComparatorResult:
             "tool": self.tool,
             "delta": self.delta,
             "epsilon": self.epsilon,
-            "status": self.status.value,
+            "status": self.status,
             "checks": dict(self.checks),
             "payload": dict(self.payload),
             "latency_ms": self.latency_ms,
@@ -87,24 +86,48 @@ def _version_valid(value: object, pattern: str) -> bool:
     return isinstance(value, str) and re.fullmatch(pattern, value) is not None
 
 
+def _base_checks() -> dict[str, bool]:
+    return {
+        "structure": False,
+        "types": False,
+        "status_allowed": False,
+        "semantic": False,
+        "timestamp_valid": False,
+        "external_health": False,
+        "latency_ok": False,
+    }
+
+
 def _blocked_result(execution_id: str, reason: str, actual: Mapping[str, Any]) -> ComparatorResult:
+    payload = actual.get("payload", {})
+    if not isinstance(payload, Mapping):
+        payload = {}
     return ComparatorResult(
         execution_id=execution_id,
         tool="system_status",
         delta=0.0,
         epsilon=0.0,
         status=VerificationStatus.BLOCKED,
-        checks={
-            "structure": False,
-            "types": False,
-            "status_allowed": False,
-            "timestamp_valid": False,
-            "external_health": False,
-            "latency_ok": False,
-        },
-        payload=actual.get("payload", {}) if isinstance(actual.get("payload", {}), Mapping) else {},
+        checks=_base_checks(),
+        payload=payload,
         latency_ms=actual.get("latency_ms"),
         readback_sha256=actual.get("readback_sha256"),
+        timestamp=_now_iso(),
+        reason=reason,
+    )
+
+
+def _failed_result(execution_id: str, reason: str, desired: Mapping[str, Any]) -> ComparatorResult:
+    return ComparatorResult(
+        execution_id=execution_id,
+        tool="system_status",
+        delta=1.0,
+        epsilon=float(desired.get("epsilon", 0.0)),
+        status=VerificationStatus.FAILED,
+        checks=_base_checks(),
+        payload={},
+        latency_ms=None,
+        readback_sha256=None,
         timestamp=_now_iso(),
         reason=reason,
     )
@@ -121,80 +144,51 @@ def compare_system_status(
       unreachable/permission missing -> BLOCKED
       malformed input/missing execution ID -> FAILED
       Δ_total > ε -> FAILED
-      Δ_total <= ε with every check true -> VERIFIED
+      Δ_total <= ε and every required check passes -> VERIFIED
 
     No PENDING, PROBABLY_OK, model override, or implicit tolerance exists.
     """
 
     desired = dict(desired or SYSTEM_STATUS_DESIRED)
-    execution_id = execution_id or (actual.get("execution_id") if isinstance(actual, Mapping) else None)
+    supplied_execution_id = execution_id or (actual.get("execution_id") if isinstance(actual, Mapping) else None)
 
-    if not execution_id:
-        return _blocked_result("MISSING_EXECUTION_ID", "MISSING_EXECUTION_ID", actual or {}) .__class__(
-            execution_id="MISSING_EXECUTION_ID",
-            tool="system_status",
-            delta=1.0,
-            epsilon=float(desired.get("epsilon", 0.0)),
-            status=VerificationStatus.FAILED,
-            checks={
-                "structure": False,
-                "types": False,
-                "status_allowed": False,
-                "timestamp_valid": False,
-                "external_health": False,
-                "latency_ok": False,
-            },
-            payload={},
-            latency_ms=None,
-            readback_sha256=None,
-            timestamp=_now_iso(),
-            reason="MISSING_EXECUTION_ID",
-        )
+    if not supplied_execution_id:
+        return _failed_result("MISSING_EXECUTION_ID", "MISSING_EXECUTION_ID", desired)
 
     if not isinstance(actual, Mapping):
-        return ComparatorResult(
-            execution_id=execution_id,
-            tool="system_status",
-            delta=1.0,
-            epsilon=float(desired.get("epsilon", 0.0)),
-            status=VerificationStatus.FAILED,
-            checks={"structure": False, "types": False, "status_allowed": False, "timestamp_valid": False, "external_health": False, "latency_ok": False},
-            payload={}, latency_ms=None, readback_sha256=None, timestamp=_now_iso(), reason="INVALID_JSON_OR_STATE",
-        )
+        return _failed_result(supplied_execution_id, "INVALID_JSON_OR_STATE", desired)
 
     if actual.get("status") == "BLOCKED" or actual.get("reason") in {"HEALTH_ENDPOINT_UNREACHABLE", "PERMISSION_MISSING"}:
-        return _blocked_result(execution_id, str(actual.get("reason", "HEALTH_ENDPOINT_UNREACHABLE")), actual)
+        return _blocked_result(supplied_execution_id, str(actual.get("reason", "HEALTH_ENDPOINT_UNREACHABLE")), actual)
 
     payload = actual.get("payload")
     if not isinstance(payload, Mapping):
-        payload = {}
+        return _failed_result(supplied_execution_id, "MISSING_OR_INVALID_PAYLOAD", desired)
 
     required = desired.get("required_fields", [])
-    checks = {
-        "structure": all(field in payload for field in required),
-        "types": all([
-            isinstance(payload.get("status"), str),
-            isinstance(payload.get("uptime"), (int, float)) and not isinstance(payload.get("uptime"), bool),
-            isinstance(payload.get("version"), str),
-            isinstance(payload.get("timestamp"), str),
-        ]),
-        "status_allowed": payload.get("status") in desired.get("status_allowlist", []),
-        "timestamp_valid": _timestamp_valid(payload.get("timestamp")),
-        "external_health": (actual.get("health_ok") is True) if desired.get("external_health_required", True) else True,
-        "latency_ok": False,
-    }
+    checks = _base_checks()
+    checks["structure"] = all(field in payload for field in required)
+    checks["types"] = all([
+        isinstance(payload.get("status"), str),
+        isinstance(payload.get("uptime"), (int, float)) and not isinstance(payload.get("uptime"), bool),
+        isinstance(payload.get("version"), str),
+        isinstance(payload.get("timestamp"), str),
+    ])
+    checks["status_allowed"] = payload.get("status") in desired.get("status_allowlist", [])
+    checks["semantic"] = _version_valid(payload.get("version"), str(desired.get("version_pattern", r"^\d+\.\d+$")))
+    checks["timestamp_valid"] = _timestamp_valid(payload.get("timestamp"))
+    checks["external_health"] = (actual.get("health_ok") is True) if desired.get("external_health_required", True) else True
 
     latency = actual.get("latency_ms")
     latency_numeric = isinstance(latency, (int, float)) and not isinstance(latency, bool) and isfinite(float(latency))
-    if latency_numeric:
-        checks["latency_ok"] = float(latency) <= float(desired.get("max_response_ms", 2000))
+    max_response_ms = float(desired.get("max_response_ms", 2000))
+    checks["latency_ok"] = latency_numeric and float(latency) <= max_response_ms
 
     delta = 0.0
-    for key in ["structure", "types", "status_allowed", "timestamp_valid", "external_health"]:
+    for key in ["structure", "types", "status_allowed", "semantic", "timestamp_valid", "external_health"]:
         if not checks[key]:
             delta += 1.0
 
-    max_response_ms = float(desired.get("max_response_ms", 2000))
     if not checks["latency_ok"]:
         if latency_numeric:
             delta += max(0.0, float(latency) - max_response_ms) / max_response_ms
@@ -202,10 +196,11 @@ def compare_system_status(
             delta += 1.0
 
     epsilon = float(desired.get("epsilon", 0.0))
-    status = VerificationStatus.VERIFIED if delta <= epsilon and all(checks.values()) else VerificationStatus.FAILED
+    all_checks_pass = all(checks.values())
+    status = VerificationStatus.VERIFIED if delta <= epsilon and all_checks_pass else VerificationStatus.FAILED
 
     return ComparatorResult(
-        execution_id=execution_id,
+        execution_id=supplied_execution_id,
         tool="system_status",
         delta=delta,
         epsilon=epsilon,
@@ -215,7 +210,7 @@ def compare_system_status(
         latency_ms=latency,
         readback_sha256=actual.get("readback_sha256"),
         timestamp=_now_iso(),
-        reason=None if status is VerificationStatus.VERIFIED else "VERIFICATION_DELTA_EXCEEDS_EPSILON_OR_CHECK_FAILED",
+        reason=None if status == VerificationStatus.VERIFIED else "VERIFICATION_DELTA_EXCEEDS_EPSILON_OR_CHECK_FAILED",
     )
 
 
