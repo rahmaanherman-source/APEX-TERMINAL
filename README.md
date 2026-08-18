@@ -19,7 +19,29 @@ GABBY / Chameleon Core translates intent and operates tools. The deterministic C
 - First local system-status adapter
 - SHA-256 tamper-evident audit-chain primitive
 - Provider-neutral integration registry
-- Comparator tests covering success, threshold failure, and malformed evidence
+- Deterministic Slab lifecycle: `INIT → PROBING → COMPARING → COMMITTED | HALTED`
+- High-resolution `performance.now()` latency measurement
+- `crypto.subtle` SHA-256 readback integrity evidence
+- Rolling latency comparator with ratio and 3-sigma guards
+- Explicit Node process halt boundary for failed bootstrap verification
+- Honest UI state mapping with no green state before commit
+- Automated TypeScript typecheck and Slab lifecycle tests
+
+## Slab lifecycle
+
+The Slab is the execution context for a single bootstrap observation. It does not infer truth from an LLM. A real adapter produces evidence, the Comparator evaluates it, and only a successful deterministic comparison permits `COMMITTED`.
+
+```text
+INIT
+  ↓
+PROBING  ← real adapter I/O + performance.now()
+  ↓
+COMPARING ← epsilon + rolling statistical guard
+  ├── pass → COMMITTED → UI: System Online
+  └── fail → HALTED → process exit(1) at the Node boundary
+```
+
+`HALTED` is terminal for that bootstrap attempt. The process-level halt is injected behind a `HaltController` so tests can verify failure behavior without terminating the test runner.
 
 ## Integration philosophy
 
@@ -40,5 +62,12 @@ Connected services become workspace tabs according to their actual capabilities:
 If the system cannot observe reality sufficiently to decide, it does not guess.
 
 ## Development
+
+Install dependencies, then run:
+
+```bash
+npm run typecheck
+npm run test:slab
+```
 
 The existing application and repository structure are preserved. New capability is additive and must be tested before being called verified.

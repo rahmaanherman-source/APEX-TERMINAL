@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "principle": "APEX connects and verifies; it does not clone or replace the provider.",
   "providers": [
     {"id":"github","modes":["api","web","cli","mcp"]},
@@ -11,6 +11,7 @@
     {"id":"digitalocean","modes":["api","cli","web"]},
     {"id":"openai","modes":["api"]},
     {"id":"google-ai-studio","modes":["api","web"]},
+    {"id":"hugging-face","modes":["api","web","local"]},
     {"id":"blender","modes":["local","cli","python"]},
     {"id":"unreal","modes":["local","cli"]},
     {"id":"tripo","modes":["api","web"]},
@@ -20,11 +21,32 @@
     {"id":"bolt","modes":["web"]},
     {"id":"lark","modes":["api","web"]},
     {"id":"meta","modes":["api","web"]},
-    {"id":"shopify","modes":["api","web"]},
+    {"id":"microsoft","modes":["api","web","cli"]},
+    {"id":"apple-developer","modes":["web","cli"]},
+    {"id":"shopify","modes":["api","web","cli"]},
     {"id":"stripe","modes":["api"]},
+    {"id":"paypal","modes":["api","web"]},
     {"id":"supabase","modes":["api","cli","web"]},
     {"id":"firebase","modes":["api","cli","web"]},
-    {"id":"cloudflare","modes":["api","cli","web"]}
+    {"id":"cloudflare","modes":["api","cli","web"]},
+    {"id":"google-analytics","modes":["api","web"]},
+    {"id":"figma","modes":["api","web"]},
+    {"id":"canva","modes":["api","web"]},
+    {"id":"notion","modes":["api","web"]},
+    {"id":"linear","modes":["api","web"]},
+    {"id":"clickup","modes":["api","web"]},
+    {"id":"todoist","modes":["api","web"]},
+    {"id":"zapier","modes":["api","web","webhook"]},
+    {"id":"workona","modes":["web"]},
+    {"id":"clockify","modes":["api","web"]},
+    {"id":"descript","modes":["api","web"]},
+    {"id":"jotform","modes":["api","web"]},
+    {"id":"posthog","modes":["api","web"]},
+    {"id":"ramp","modes":["api","web"]},
+    {"id":"outlook","modes":["api","web"]},
+    {"id":"sharepoint","modes":["api","web"]},
+    {"id":"teams","modes":["api","web"]}
   ],
-  "states":["AVAILABLE","INSTALLED","CONFIGURED","CONNECTED","TESTED","VERIFIED","FAILED","BLOCKED","UNVERIFIED"]
+  "states":["DISCOVERED","AVAILABLE","AUTHORIZED","CONNECTED","RUNNING","TESTED","VERIFIED","FAILED","BLOCKED","UNVERIFIED"],
+  "truth_rule":"Provider manifests declare capabilities; runtime audits determine actual state."
 }

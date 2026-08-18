@@ -15,4 +15,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements-dev.txt
-      - run: pytest -q tests/test_comparator.py
+      - run: PYTHONPATH=. pytest -q tests/test_comparator.py
