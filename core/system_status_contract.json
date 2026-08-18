@@ -1,0 +1,9 @@
+{
+  "required_fields": ["status", "uptime", "version", "timestamp"],
+  "status_allowlist": ["SOVEREIGN_ONLINE", "DEGRADED", "OFFLINE", "UNVERIFIED"],
+  "version_pattern": "^\\d+\\.\\d+(\\.\\d+)?(\\.\\w+)?$",
+  "max_response_ms": 2000,
+  "epsilon": 0.0,
+  "external_health_required": true,
+  "timestamp_format": "ISO8601"
+}
