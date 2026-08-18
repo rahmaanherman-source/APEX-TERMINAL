@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "godspeed://schemas/system-status/v1.0",
+  "title": "GODSPEED System Status State",
+  "type": "object",
+  "required": ["execution_id", "adapter", "state", "observed_at", "latency_ms", "evidence"],
+  "properties": {
+    "execution_id": {"type": "string", "minLength": 1},
+    "adapter": {"const": "system_status"},
+    "state": {
+      "type": "object",
+      "required": ["status", "uptime", "version", "timestamp"],
+      "properties": {
+        "status": {"type": "string", "enum": ["SOVEREIGN_ONLINE", "DEGRADED", "OFFLINE", "UNVERIFIED", "UNKNOWN"]},
+        "uptime": {"type": "number", "minimum": 0},
+        "version": {"type": "string", "pattern": "^\\d+\\.\\d+(\\.\\d+)?(\\.\\w+)?$"},
+        "timestamp": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "observed_at": {"type": "string", "format": "date-time"},
+    "latency_ms": {"type": "number", "minimum": 0},
+    "evidence": {
+      "type": "object",
+      "required": ["readback_sha256"],
+      "properties": {
+        "readback_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+        "source": {"type": "string"},
+        "endpoint": {"type": "string"},
+        "raw_response_hash": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
