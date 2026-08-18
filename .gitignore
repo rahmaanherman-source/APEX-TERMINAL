@@ -1,0 +1,9 @@
+.apex/goldies-gcp-state.env
+.apex/goldies-gcp-state.json
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+node_modules/
+.DS_Store
