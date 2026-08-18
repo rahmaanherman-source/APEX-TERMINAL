@@ -1,7 +1,8 @@
 """Hash-chained audit primitives for GODSPEED execution evidence.
 
-This module does not claim digital signatures. A hash chain provides integrity
-linkage; signatures require a separate key-management implementation.
+A hash chain provides integrity linkage. It is not a digital signature. A
+separate key-management boundary is required before signatures can honestly be
+claimed.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Mapping, Any
 
 
 def canonical_json(value: Mapping[str, object]) -> bytes:
@@ -24,6 +25,38 @@ def chain_hash(previous_hash: str, event: Mapping[str, object]) -> str:
     """Hₙ = SHA256(Hₙ₋₁ || canonical_eventₙ)."""
 
     return sha256_hex(previous_hash.encode("ascii") + canonical_json(event))
+
+
+def hash_mapping(value: Mapping[str, object]) -> str:
+    """SHA-256 over canonical JSON for desired/actual state evidence."""
+
+    return sha256_hex(canonical_json(value))
+
+
+@dataclass(frozen=True)
+class SystemStatusEvidence:
+    """Canonical evidence fields required for a System Status verification."""
+
+    execution_id: str
+    tool: str
+    desired_state_hash: str
+    actual_state_hash: str
+    delta: float
+    status: str
+    timestamp: str
+    readback_sha256: str | None
+
+    def as_event(self) -> dict[str, Any]:
+        return {
+            "execution_id": self.execution_id,
+            "tool": self.tool,
+            "desired_state_hash": self.desired_state_hash,
+            "actual_state_hash": self.actual_state_hash,
+            "delta": self.delta,
+            "status": self.status,
+            "timestamp": self.timestamp,
+            "readback_sha256": self.readback_sha256,
+        }
 
 
 @dataclass(frozen=True)
