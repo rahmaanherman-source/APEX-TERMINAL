@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>APEX TERMINAL</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="terminal">
+    <aside class="rail">
+      <div class="brand">APEX</div>
+      <button class="rail-action active" data-view="workspace">Workspace</button>
+      <button class="rail-action" data-view="projects">Projects</button>
+      <button class="rail-action" data-view="tools">Tools</button>
+      <button class="rail-action" data-view="evidence">Evidence</button>
+      <button class="rail-action" data-view="memory">Memory</button>
+    </aside>
+
+    <section class="main">
+      <header class="topbar">
+        <div>
+          <span class="eyebrow">GODSPEED / APEX</span>
+          <h1>Terminal</h1>
+        </div>
+        <div class="system-state" id="system-state"><span class="dot"></span> UNVERIFIED</div>
+      </header>
+
+      <section class="command-card">
+        <label for="command">GABBY / Chameleon Core</label>
+        <div class="command-row">
+          <input id="command" autocomplete="off" placeholder="What are we building?" />
+          <button id="run">RUN</button>
+        </div>
+        <p class="hint">Cmd/Ctrl + K · build · run · test · verify · connect · open</p>
+      </section>
+
+      <section class="workspace-grid">
+        <div class="panel tabs-panel">
+          <div class="panel-head"><span>WORKSPACE</span><span id="tab-count">0</span></div>
+          <div id="tabs" class="tabs"></div>
+        </div>
+
+        <div class="panel active-panel">
+          <div class="panel-head"><span id="active-title">SYSTEM STATUS</span><span id="active-state">UNVERIFIED</span></div>
+          <pre id="output">Waiting for a real command.</pre>
+        </div>
+
+        <div class="panel inspector">
+          <div class="panel-head"><span>EVIDENCE</span><span id="evidence-state">—</span></div>
+          <div id="inspector-content" class="inspector-content">No evidence observed.</div>
+        </div>
+      </section>
+
+      <footer class="feed" id="feed">READY · No claim is green until verified.</footer>
+    </section>
+  </main>
+  <script src="./app.js"></script>
+</body>
+</html>
