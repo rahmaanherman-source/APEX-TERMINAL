@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:slab": "tsx --test tests/slab.test.ts"
+    "test:slab": "tsx --test tests/slab.test.ts",
+    "bootstrap:slab": "tsx core/bootstrap-cli.ts"
   },
   "dependencies": {
     "next": "^14.0.0",
