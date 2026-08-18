@@ -60,6 +60,10 @@ The repository records these implemented foundation areas:
 - Forensic Vision module specification
 - Forensic Vision science-validation baseline
 - Forensic Vision research source register
+- Alexa Heritage Phase 1 interaction-model artifact
+- Alexa Heritage Phase 1 Lambda adapter artifact
+- Alexa Phase 1 verification-boundary documentation
+- Repository verification board
 
 ## 5. Verified Forensic Vision Research Facts
 
@@ -112,13 +116,28 @@ Sources:
 - APEX should preserve disagreement among independent methods and report `INCONCLUSIVE` where evidence is insufficient or conflicting.
 - The Forensic Vision specification treats `OBSERVED` as a measurable result, not proof of authenticity or forgery.
 
-## 7. Verified Integration Principle
+## 7. Alexa Phase 1 Truth Boundary
+
+- The repository now contains a Phase 1 Alexa interaction model and Lambda adapter as design/implementation artifacts.
+- Alexa is defined as a thin interface over the APEX API, not a second truth source.
+- Allowed response states are `OBSERVED`, `FAILED`, `BLOCKED`, `UNVERIFIED`, `INCONCLUSIVE`, and `NOT_CONNECTED`.
+- The Lambda adapter must not manufacture an authenticity or verification conclusion that the underlying APEX API did not return.
+- Alexa runtime deployment, live API connectivity, Alexa Developer Console configuration, and end-to-end voice execution remain UNVERIFIED until observed in a real runtime test.
+- APL visual responses remain a future implementation phase.
+
+## 8. Firebase Truth Boundary
+
+- Repository evidence does not prove a live authenticated Firebase connection.
+- Repository search surfaced Firebase/integration documentation references, but those references are not proof that a Firebase project is connected or that a Firebase operation succeeds.
+- Firebase therefore remains `UNVERIFIED` until a real authenticated Firebase operation is executed and read back.
+
+## 9. Verified Integration Principle
 
 Connected services are represented as workspace tabs according to their actual integration capability: native, remote, web, CLI, API, SDK, webhook, or MCP-backed.
 
 A service must not be reported as connected or verified until the connection is actually observed and tested.
 
-## 8. Hard Memory Rules
+## 10. Hard Memory Rules
 
 1. This slab contains verified facts only.
 2. Proposed architecture is not automatically memory.
@@ -130,7 +149,7 @@ A service must not be reported as connected or verified until the connection is 
 8. Conflicting claims do not overwrite verified facts silently; they trigger re-verification.
 9. Project-specific memory is loaded before project work so GABBY does not need the entire conversation to reconstruct project state.
 
-## 9. Evidence Rule
+## 11. Evidence Rule
 
 For every future memory entry, preserve:
 
@@ -146,8 +165,8 @@ For every future memory entry, preserve:
 
 **Hard rule:** `VERIFIED` means evidence exists. If evidence does not exist, the entry does not enter this slab.
 
-## 10. Current Boundary
+## 12. Current Boundary
 
-This slab does **not** assert that every planned Blender, Unreal, Tripo, cloud, AI, marketplace, payment, revenue, multi-device, local-model, or external-provider capability is live. Those capabilities remain outside the hard verified slab until their adapters and runtime behavior are actually observed and tested.
+This slab does **not** assert that every planned Blender, Unreal, Tripo, cloud, AI, marketplace, payment, revenue, multi-device, local-model, Firebase, Alexa, or external-provider capability is live. Those capabilities remain outside the hard verified slab until their adapters and runtime behavior are actually observed and tested.
 
 It also does not assert forensic legal admissibility, authenticity determinations, or law-enforcement authority for APEX. Those require separate validated workflows and appropriate human/organizational authority.
