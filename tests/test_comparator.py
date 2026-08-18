@@ -11,8 +11,13 @@ DESIRED = {
 }
 
 
-def test_system_status_verified_when_observed_state_matches_contract():
-    actual = {
+def canonical_actual(latency_ms=100):
+    return {
+        "execution_id": "exec-1",
+        "action_id": "SYSTEM_STATUS",
+        "adapter": "system_status",
+        "observed_at": "2026-08-18T00:00:00Z",
+        "status": "OBSERVED",
         "payload": {
             "status": "SOVEREIGN_ONLINE",
             "uptime": 10.0,
@@ -20,26 +25,20 @@ def test_system_status_verified_when_observed_state_matches_contract():
             "timestamp": "2026-08-18T00:00:00Z",
         },
         "health_ok": True,
-        "latency_ms": 100,
+        "latency_ms": latency_ms,
+        "evidence": ["test"],
         "readback_sha256": "a" * 64,
     }
-    result = compare_system_status(actual, DESIRED, "exec-1")
+
+
+def test_system_status_verified_when_observed_state_matches_contract():
+    result = compare_system_status(canonical_actual(), DESIRED, "exec-1")
     assert result["status"] == VERIFIED
     assert result["delta"] == 0.0
 
 
 def test_system_status_fails_when_latency_exceeds_budget():
-    actual = {
-        "payload": {
-            "status": "SOVEREIGN_ONLINE",
-            "uptime": 10.0,
-            "version": "3.0.0.OMEGA",
-            "timestamp": "2026-08-18T00:00:00Z",
-        },
-        "health_ok": True,
-        "latency_ms": 2200,
-    }
-    result = compare_system_status(actual, DESIRED, "exec-2")
+    result = compare_system_status(canonical_actual(2200), DESIRED, "exec-1")
     assert result["status"] == FAILED
     assert result["delta"] > 0
 
