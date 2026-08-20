@@ -1,0 +1,85 @@
+{
+  "version": "1.0",
+  "purpose": "Provider-neutral manifests for the commerce, revenue, fulfillment, analytics, CRM, communications, and work systems registered by APEX Terminal.",
+  "truth_rule": "These manifests describe how a provider can be discovered and tested. They never assert that an account is connected or verified.",
+  "groups": {
+    "commerce_and_revenue": [
+      {
+        "id": "shopify",
+        "category": "commerce",
+        "readback_targets": ["store identity", "products", "orders", "checkout or order state when authorized"],
+        "write_requires_explicit_authorization": true
+      },
+      {
+        "id": "stripe",
+        "category": "payments",
+        "readback_targets": ["account identity", "payment capability", "test-mode transaction evidence when explicitly authorized"],
+        "write_requires_explicit_authorization": true
+      },
+      {
+        "id": "paypal",
+        "category": "payments",
+        "readback_targets": ["account identity", "merchant capability", "sandbox transaction evidence when explicitly authorized"],
+        "write_requires_explicit_authorization": true
+      },
+      {
+        "id": "printify",
+        "category": "fulfillment",
+        "readback_targets": ["account identity", "shops", "catalog access", "order/fulfillment capability"],
+        "write_requires_explicit_authorization": true
+      }
+    ],
+    "business_service_families": [
+      {
+        "id": "analytics",
+        "provider_family": true,
+        "readback_targets": ["property identity", "measurement configuration", "recent event or reporting evidence"]
+      },
+      {
+        "id": "crm",
+        "provider_family": true,
+        "readback_targets": ["workspace identity", "object schema", "read-only record evidence"]
+      },
+      {
+        "id": "email",
+        "provider_family": true,
+        "readback_targets": ["account identity", "mailbox capability", "authorized message metadata"]
+      },
+      {
+        "id": "fulfillment",
+        "provider_family": true,
+        "readback_targets": ["account identity", "warehouse or shipping capability", "authorized fulfillment state"]
+      }
+    ],
+    "work_and_productivity": [
+      {"id":"slack","readback_targets":["workspace identity","authorized channel metadata","message/thread metadata"]},
+      {"id":"microsoft-teams","readback_targets":["tenant identity","team metadata","authorized channel/message metadata"]},
+      {"id":"outlook","readback_targets":["mailbox identity","calendar availability","authorized message metadata"]},
+      {"id":"sharepoint","readback_targets":["site identity","document-library metadata","authorized file metadata"]},
+      {"id":"onedrive","readback_targets":["drive identity","authorized file metadata","readback integrity"]},
+      {"id":"notion","readback_targets":["workspace identity","database/page metadata","authorized page readback"]},
+      {"id":"linear","readback_targets":["workspace identity","team/project metadata","issue readback"]},
+      {"id":"clickup","readback_targets":["workspace identity","space/list metadata","task readback"]},
+      {"id":"atlassian","readback_targets":["site identity","project metadata","authorized issue/page readback"]}
+    ]
+  },
+  "verification_sequence": [
+    "DISCOVER",
+    "MAP",
+    "CONNECT",
+    "AUTHENTICATE",
+    "READ_BACK",
+    "CAPABILITY_TEST",
+    "COMPARE",
+    "VERIFY",
+    "AUDIT"
+  ],
+  "safety_constraints": [
+    "Never store raw credentials in a manifest.",
+    "Prefer read-only verification before write-capability verification.",
+    "Sandbox/test environments must remain distinguishable from production revenue.",
+    "HTTP success alone does not prove business capability.",
+    "A provider-family entry is not a provider connection.",
+    "A registered provider is not a verified provider."
+  ]
+}
