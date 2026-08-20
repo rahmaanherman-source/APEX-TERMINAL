@@ -20,15 +20,23 @@ GABBY / Chameleon Core translates intent and operates tools. The deterministic C
 - SHA-256 tamper-evident audit-chain primitive
 - Provider-neutral integration registry
 - Comparator tests covering success, threshold failure, and malformed evidence
+- Canonical visual-build preservation protocol for screenshot/reference-driven UI work
 
 ## Integration philosophy
 
 Connected services become workspace tabs according to their actual capabilities: native, remote, web, CLI, API, SDK, webhook, or MCP-backed. A service is not reported as connected or verified until the connection is actually observed and tested.
 
+## Visual build philosophy
+
+For every visual implementation task, the supplied screenshot/reference is analyzed first and treated as the visual source of truth unless the owner explicitly authorizes a different interpretation. Existing working functionality is the functional floor. Visual upgrades are additive and must not silently remove capability.
+
+See `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md` for the canonical workflow covering visual analysis, preservation, browser-style workspace tabs, scroll stability, visual regression, functional testing, and evidence-backed verification.
+
 ## Key documents
 
 - `docs/GODSPEED_UNIFIED_WORKSTATION_ENGINE_SPEC.md`
 - `docs/APEX_TERMINAL_UIUX_SPEC.md`
+- `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md`
 - `docs/CANONICAL_STATE_SCHEMA.md`
 - `core/system_status_contract.json`
 - `config/integration-registry.json`
