@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  comparator:
+  comparator-and-registry:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,4 +15,5 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements-dev.txt
-      - run: pytest -q tests/test_comparator.py
+      - run: python scripts/validate_integration_registry.py
+      - run: pytest -q tests/test_comparator.py tests/test_integration_registry.py
