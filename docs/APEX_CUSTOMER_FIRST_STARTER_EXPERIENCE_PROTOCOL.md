@@ -1,17 +1,92 @@
-# APEX Customer-First Starter Experience Protocol v1.0
+# APEX Customer-First Starter Experience Protocol v1.1
 
 **Status:** Canonical companion rule to `APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md`
-**Scope:** APEX Hub, customer-facing commerce/storefront surfaces, AI-generated starter screens, Sketchpad visual generation, and any separately packaged model/product that generates customer UI.
+**Scope:** APEX Hub, customer-facing commerce/storefront surfaces, AI-generated starter screens, Sketchpad visual generation, and operator workspaces.
 
 ## Core law
 
-> **THE CUSTOMER SEES THE THING FIRST.**
+> **THE CUSTOMER EXPERIENCE IS THE CENTER OF THE OPERATOR WORKSPACE.**
 
-When a customer enters a customer-facing product, the first rendered experience is the product/customer experience itself — not analytics, feed audit, repository tooling, telemetry, operator controls, or an unexplained floating panel.
+When the owner is working inside APEX on a customer-facing product, the **middle/primary workspace must show the customer-facing experience itself**. The owner should be able to see what the customer sees without switching to a separate "customer view" just to understand the page.
 
-The system starts from a real, usable layout rather than an empty canvas.
+The operator workspace is therefore organized as:
 
-## Starter experience law
+`LEFT/RIGHT NAVIGATION + SECONDARY OPERATOR TABS/PANELS + CUSTOMER VIEW IN THE CENTER + GABBY FLOATING ASSISTANT`
+
+The customer-facing surface is the primary workspace. Analytics and administrative tooling are secondary workspaces.
+
+## Customer-visible-first workspace law
+
+For a commerce/store product, the center of the workspace shows the actual storefront/product experience:
+
+- product imagery
+- product names
+- pricing/commercial information
+- primary actions
+- categories/discovery
+- supporting product information
+- the same visual hierarchy the customer receives
+
+The operator should not have to reconstruct the customer experience from analytics or administrative screens.
+
+> **IF THE CUSTOMER WOULD SEE IT, THE OWNER SHOULD BE ABLE TO SEE IT IN THE CENTER.**
+
+## Operator tools are secondary
+
+The following are **operator workspaces**, not the primary customer-facing canvas:
+
+- Analytics
+- Feed Audit
+- Repository
+- Integrations
+- Inventory administration
+- AI/system controls
+- telemetry
+- diagnostics
+- deployment/status
+- other back-office tooling
+
+These capabilities may be opened as tabs, side panels, drawers, or attached workspaces according to the shell design, but they must not displace the customer experience by default.
+
+They must be easy to collapse, minimize, close, reopen, and switch between.
+
+## Edge-anchored workspace rule
+
+The customer workspace must be attached to the application shell and viewport. It must not appear as a detached floating card surrounded by unexplained empty space.
+
+Acceptable primary anchoring includes:
+
+- left navigation rail
+- top workspace/tab bar
+- right attached inspector/tool rail
+- bottom command/status bar
+- full available viewport
+
+Secondary panels may attach to the left or right side. They may collapse into tabs or rails when not needed.
+
+The only intentionally floating persistent interaction surface in the main working experience is the **GABBY assistant interface**, because its purpose is direct conversation with the owner while the customer-facing workspace remains visible underneath.
+
+## GABBY floating assistant law
+
+GABBY is the exception to the no-floating-primary-screen rule.
+
+The GABBY interaction surface may float above the workspace and must support:
+
+- typed messages
+- microphone/voice input where enabled
+- conversational responses
+- visual-edit commands
+- direct interaction with the currently visible customer workspace
+- clear minimize/collapse/close controls
+- a clear reopen path
+
+GABBY should not obscure the customer experience unnecessarily. The owner can talk to or type to GABBY while continuing to see the customer-facing screen.
+
+The intended loop is:
+
+`SEE CUSTOMER VIEW → TALK/TYPE TO GABBY → TARGET/REQUEST CHANGE → APPLY → RENDER → SEE RESULT`
+
+## Customer-first starter experience
 
 Every customer-facing build begins with a **Starter Experience**:
 
@@ -21,121 +96,86 @@ Every customer-facing build begins with a **Starter Experience**:
 4. Give the customer a clear place to begin.
 5. Let the customer describe what they want.
 6. Generate the first screen from that description.
-7. Preserve the generated screen as the current visual working surface.
-8. Add the remaining capabilities without displacing the customer experience.
+7. Render that screen as the actual working customer surface.
+8. Preserve it while adding the remaining capabilities.
 
 The first screen is not a disposable mockup. It is the initial working state of the product.
 
-## Commerce/store rule
-
-For a store or merchandise product, the starter experience begins with the storefront the customer would actually shop from.
-
-The customer should immediately see, as appropriate:
-
-- product imagery
-- product names
-- pricing/commercial information
-- primary actions
-- categories or discovery controls
-- supporting product information
-
-Operator analytics, feed audit, inventory administration, AI controls, repository views, and system telemetry belong in their own tabs/workspaces unless the customer-facing screen explicitly requires them.
-
 ## "Describe it to us" generation flow
 
-The customer-facing starting flow should communicate the model naturally:
+The starting experience should communicate naturally:
 
 > **Describe it to us. We'll generate your first screen.**
 
-The system then:
+Then:
 
-`CUSTOMER DESCRIPTION → FIRST SCREEN → RENDERED CUSTOMER VIEW → EDIT/ITERATE → VERIFY`
+`CUSTOMER DESCRIPTION → FIRST SCREEN → CENTER CUSTOMER VIEW → EDIT/ITERATE → VERIFY`
 
 The generated first screen must be rendered as an actual application surface, not merely returned as an image or detached preview.
 
-## Separate-model rule
+## Visual Target Index
 
-If the Starter Experience is packaged and sold as a separate model, assistant, generator, or product, it retains the same APEX visual laws:
+When visual inspection/editing mode is enabled, meaningful visible targets are numbered in normal reading order:
 
-- customer-facing first view
-- supplied visual preservation
-- functional capability preservation
-- edge-anchored primary workspace
-- clear tabs/panels
-- explicit collapse/close/reopen controls
-- Visual Target Index when inspection mode is enabled
-- Sketchpad/visual iteration
-- test and visual regression verification
+`1  2  3  4`
 
-A separate product may have its own identity, but it does not bypass these foundational interaction rules.
+`5  6  7  8`
 
-## Direct manipulation law
+`9 10 11 12`
 
-The customer/user may interact directly with visible layout objects where the product supports visual editing.
+The index is temporary and unobtrusive. It exists so the owner and GABBY can address the exact rendered element without ambiguity.
 
-Examples include:
-
-- moving a box/card
-- resizing a section
-- changing a dropdown
-- changing a product image
-- changing a name or label
-- changing placement
-- changing visibility
-- opening or closing a panel
-- changing the order of visible elements
-
-The interface should make these interactions obvious. If a control is editable, the user should not have to guess that it is editable.
-
-## Human + AI editing loop
-
-The Sketchpad/visual editing layer supports a shared visual workspace:
-
-`SEE → POINT → DESCRIBE → GENERATE/EDIT → RENDER → COMPARE → KEEP OR CHANGE`
-
-The human can directly manipulate the interface. GABBY/AI can manipulate the same rendered surface through semantic target addressing.
-
-If Visual Target Index is enabled, the user can say:
+Examples:
 
 - `1 — change the picture`
 - `4 — move this box to the right`
 - `7 — change the dropdown`
 - `12 — rename this section`
 
-The system resolves the target against the current rendered state and changes only what was requested.
+After a structural change, the target map is recalculated so an old number is never silently applied to a different element.
 
-## Customer view is the reference view
+## Sketchpad collaboration law
 
-When the user is designing a customer-facing product, the primary inspection view should answer:
+The Sketchpad is the visual collaboration/generation layer behind this workflow, not a replacement for the application.
 
-> **"What does the customer see?"**
+`REFERENCE → SKETCHPAD/GENERATED VISUAL → TARGET → GABBY/HUMAN EDIT → CENTER CUSTOMER VIEW → COMPARE → VERIFY`
 
-The operator can then open secondary workspaces for analytics, feed audit, AI, repository, integrations, or administration without replacing the customer-facing starting surface.
+The owner can generate a visual, inspect it, point to a target, type or speak the requested change, and see the updated customer-facing result in the same workspace.
 
-## No blank-canvas default
+## Tabs and side workspaces
 
-Do not default the customer to an empty, unexplained canvas when the product can provide a meaningful starter layout.
+Operator workspaces should behave like deliberate browser-style workspaces where appropriate:
 
-The starter layout is the first thing the system gives the customer to work with.
+- active tab is obvious
+- tabs retain state
+- `+` opens a workspace where supported
+- individual tabs can close with an obvious `X`
+- secondary panels can collapse/minimize
+- closed workspaces have a clear reopen path
+- overflow is controlled
+- mobile uses controlled horizontal tab scrolling
+- the central customer workspace remains the primary destination
+
+Do not make the owner guess whether a surface is a tab, panel, drawer, modal, or permanent navigation.
 
 ## Preservation law
 
-Starter layouts are additive. They must not remove verified existing capabilities.
+This layout rule is additive and must not remove verified capabilities.
 
-`EXISTING VERIFIED CAPABILITIES + STARTER EXPERIENCE + SUPPLIED VISUAL + REQUESTED UPGRADES`
+`EXISTING VERIFIED CAPABILITIES + CUSTOMER-CENTERED WORKSPACE + SECONDARY OPERATOR TABS + GABBY ASSISTANT + REQUESTED UPGRADES`
 
 never:
 
 `EXISTING CAPABILITIES - FUNCTIONALITY`
 
-## Relationship to the visual protocol
+## Relationship to visual preservation
 
 This document is a companion to:
 
 `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md`
 
-The visual protocol controls supplied-reference fidelity, visual regression, shell attachment, tabs, panels, targeting, and preservation. This protocol adds the **customer-first starter experience and describe-to-generate flow**.
+The visual protocol remains authoritative for supplied-reference fidelity, visual regression, shell attachment, target numbering, preservation, testing, and verification. This protocol defines the customer-centered operator workspace and the intentional GABBY floating assistant exception.
 
 ## Final law
 
-**CUSTOMER FIRST. START WITH A REAL LAYOUT. LET THEM DESCRIBE IT. GENERATE THE FIRST SCREEN. THEN BUILD OUT THE REST WITHOUT TAKING THE CUSTOMER EXPERIENCE AWAY.**
+**CUSTOMER VIEW IN THE CENTER. OPERATOR TOOLS IN TABS/PANELS. GABBY FLOATS SO THE OWNER CAN TALK/TYPE WHILE SEEING THE CUSTOMER VIEW. NOTHING IMPORTANT FLOATS RANDOMLY. EVERYTHING HAS A CLEAR PLACE, IDENTITY, AND CONTROL.**
