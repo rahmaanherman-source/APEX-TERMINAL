@@ -21,6 +21,33 @@ GABBY / Chameleon Core translates intent and operates tools. The deterministic C
 - Provider-neutral integration registry
 - Comparator tests covering success, threshold failure, and malformed evidence
 - Canonical visual-build preservation protocol for screenshot/reference-driven UI work
+- Exact APEX Hub / Terminal shell directive
+- Exact Hub implementation plan
+- Last-24-hour repository reconciliation audit
+- Local-first AI runtime contract
+- APEX Terminal master reference artifact
+
+## Canonical shell law
+
+The supplied APEX Hub / Terminal reference is the **exact visual source of truth** for the shell. It is not inspiration or a generic dashboard target.
+
+**CHANGE THE SHELL WITHOUT LOSING THE ENGINE.**
+
+The existing application is the functional floor. Missing buttons, toggles, routes, links, and modules must be added rather than deleting capabilities. Every visible control must have a real action, route, state transition, truthful disabled state, or truthful error state.
+
+See:
+
+- `docs/APEX_HUB_EXACT_SHELL_DIRECTIVE.md`
+- `docs/superpowers/plans/2026-08-21-apex-terminal-exact-hub-shell.md`
+- `docs/audits/APEX_LAST_24H_RECONCILIATION_2026-08-21.md`
+
+## Local-first AI
+
+APEX owns the control plane. Local model execution is the preferred route when an adequate local capability is available. External AI providers are escalation resources rather than the foundation of the system.
+
+See `docs/APEX_LOCAL_FIRST_AI_RUNTIME_CONTRACT.md`.
+
+The contract does **not** claim that every local runtime is installed or verified. Runtime verification requires real health checks, capability probes, execution, readback, evidence, and the Truth Gate.
 
 ## Integration philosophy
 
@@ -37,7 +64,12 @@ See `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md` for the canonical workflow
 - `docs/GODSPEED_UNIFIED_WORKSTATION_ENGINE_SPEC.md`
 - `docs/APEX_TERMINAL_UIUX_SPEC.md`
 - `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md`
+- `docs/APEX_HUB_EXACT_SHELL_DIRECTIVE.md`
+- `docs/APEX_LOCAL_FIRST_AI_RUNTIME_CONTRACT.md`
 - `docs/CANONICAL_STATE_SCHEMA.md`
+- `docs/MEMORY_SLAB.md`
+- `docs/audits/APEX_LAST_24H_RECONCILIATION_2026-08-21.md`
+- `reference/APEX_TERMINAL_MASTER_REFERENCE.tsx`
 - `core/system_status_contract.json`
 - `config/integration-registry.json`
 
