@@ -265,6 +265,52 @@ Do not apply random patches or hide errors.
 
 A feature is complete only when it is implemented, integrated, tested, built, runtime verified, security reviewed, existing functionality preserved, evidence captured, and limitations reported.
 
+## APEX HUB / TERMINAL — EXACT SHELL LAW
+
+**CANONICAL DIRECTIVE:** `docs/APEX_HUB_EXACT_SHELL_DIRECTIVE.md`
+
+The supplied APEX Hub / Terminal reference is the **exact visual source of truth for the shell**.
+
+This is not inspiration. It is not a similar-layout request. It is not permission to substitute a generic dashboard, SaaS layout, chatbot, or simplified interpretation.
+
+When the owner says the shell must be exact, mirror, carbon-copy, or exactly like the supplied reference, the builder must reproduce the supplied shell's visual composition, hierarchy, navigation, panels, spacing, controls, status surfaces, Gabby identity, connected-app presentation, and bottom command surface as closely as technically possible.
+
+The shell and the engine are separate concerns:
+
+`EXACT SHELL → EXISTING APEX ENGINE → ADD MISSING CONTROLS/LINKS → TEST → VERIFY`
+
+The existing application is the functional floor. Changing the shell must not remove existing routes, modules, providers, integrations, actions, buttons, toggles, project state, audit, Truth Gate, Memory, Vault/Gatekeeper, Terminal, Character Studio, Worlds, Animation, Render, Build, Run, Test, Verify, Deploy, Publish, Gabby, provider state, capability state, or local execution.
+
+If a capability is not reachable from the new shell, add the real button, toggle, route, drawer, or module needed to reach it.
+
+If a visible control has no real action, repair it or give it a truthful disabled/error state. Never leave an orphan control.
+
+The Gabby reference is the Hub identity and must provide a real chat/creation surface. The male-character reference is the Terminal workspace shell. The integration reference defines the Connections/Ecosystem provider layer. The Gabby Flow Orb reference establishes the persistent APEX/Gabby visual identity.
+
+Connections/Ecosystem must be a real accessible shell surface containing provider inventory and truthful status. Selecting a provider must open its actual detail/configuration/workspace path. Closing the panel must preserve the current workspace/project context.
+
+The local Terminal and local-first Vault/Gatekeeper remain first-class capabilities. Do not create duplicate engines merely to make the new shell appear complete.
+
+No visual state may be promoted to VERIFIED without real execution/readback/evidence.
+
+**Permanent rule:**
+
+> THIS IS THE SHELL.
+>
+> THE SUPPLIED REFERENCE IS THE VISUAL SOURCE OF TRUTH.
+>
+> THE EXISTING APPLICATION IS THE FUNCTIONAL FLOOR.
+>
+> CHANGE THE SHELL WITHOUT LOSING THE ENGINE.
+>
+> IF A CAPABILITY IS MISSING FROM THE SHELL, ADD THE CONTROL OR LINK.
+>
+> IF A CONTROL IS PRESENT BUT DOES NOT WORK, REPAIR IT.
+>
+> DO NOT RETURN AN APPROXIMATION. RETURN THE EXACT MIRROR WITH ALL FUNCTIONALITY.
+>
+> VERIFY THE RESULT BEFORE CLAIMING COMPLETION.
+
 ## Final execution law
 
 WHEN THE REQUIREMENT IS CLEAR:
