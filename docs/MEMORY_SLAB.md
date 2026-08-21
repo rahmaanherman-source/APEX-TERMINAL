@@ -165,7 +165,51 @@ For every future memory entry, preserve:
 
 **Hard rule:** `VERIFIED` means evidence exists. If evidence does not exist, the entry does not enter this slab.
 
-## 12. Current Boundary
+## 12. Durable User-Approved Design Directives
+
+This section is deliberately separated from verified runtime facts.
+
+It records durable design decisions that have been explicitly approved by the owner and must be preserved across future sessions. These entries are **design authority**, not claims that runtime implementation has already passed verification.
+
+### APEX Hub / Terminal Exact Shell Directive
+
+- Canonical directive: `docs/APEX_HUB_EXACT_SHELL_DIRECTIVE.md`
+- Status: `DESIGN_LOCKED`
+- Runtime implementation status: `NOT_YET_VERIFIED` until the shell is implemented and tested against the supplied visual references.
+- The supplied APEX Hub / Terminal reference is the exact visual source of truth for the shell.
+- The shell is not to be treated as inspiration, approximation, or a generic dashboard template.
+- The existing APEX application is the functional floor; changing the shell must not remove existing functionality.
+- Missing buttons, toggles, routes, links, or modules required to expose existing capabilities must be added rather than deleting the underlying capability.
+- Gabby is the Hub identity and must have a real chat/creation surface.
+- The male-character APEX Terminal reference defines the primary workspace shell.
+- The integration reference defines the Connections/Ecosystem provider layer.
+- The Gabby Flow Orb reference defines the persistent APEX/Gabby visual identity.
+- Connections/Ecosystem must remain a real accessible provider surface with truthful provider state.
+- Local Terminal and local-first Vault/Gatekeeper remain first-class capabilities.
+- No visible control may be left without a real action, route, state transition, or truthful disabled/error state.
+- No visual state may be represented as `VERIFIED` without real evidence.
+
+**Permanent directive text:**
+
+> THIS IS THE SHELL.
+>
+> THE SUPPLIED REFERENCE IS THE VISUAL SOURCE OF TRUTH.
+>
+> THE EXISTING APPLICATION IS THE FUNCTIONAL FLOOR.
+>
+> CHANGE THE SHELL WITHOUT LOSING THE ENGINE.
+>
+> IF A CAPABILITY IS MISSING FROM THE SHELL, ADD THE CONTROL OR LINK.
+>
+> IF A CONTROL IS PRESENT BUT DOES NOT WORK, REPAIR IT.
+>
+> DO NOT RETURN AN APPROXIMATION. RETURN THE EXACT MIRROR WITH ALL FUNCTIONALITY.
+>
+> VERIFY THE RESULT BEFORE CLAIMING COMPLETION.
+
+This entry proves that the directive is durably recorded in the repository. It does **not** by itself prove that the final rendered shell is already visually or functionally verified.
+
+## 13. Current Boundary
 
 This slab does **not** assert that every planned Blender, Unreal, Tripo, cloud, AI, marketplace, payment, revenue, multi-device, local-model, Firebase, Alexa, or external-provider capability is live. Those capabilities remain outside the hard verified slab until their adapters and runtime behavior are actually observed and tested.
 
