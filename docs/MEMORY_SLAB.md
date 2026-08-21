@@ -207,7 +207,18 @@ It records durable design decisions that have been explicitly approved by the ow
 >
 > VERIFY THE RESULT BEFORE CLAIMING COMPLETION.
 
-This entry proves that the directive is durably recorded in the repository. It does **not** by itself prove that the final rendered shell is already visually or functionally verified.
+### APEX Local-First AI Runtime Directive
+
+- Canonical contract: `docs/APEX_LOCAL_FIRST_AI_RUNTIME_CONTRACT.md`
+- Status: `DESIGN_LOCKED`
+- Runtime implementation status: `NOT_YET_VERIFIED` until an actual local model runtime, router, Gatekeeper path, action executor, readback, and evidence chain are tested.
+- APEX owns the control plane; AI providers are resources behind that plane.
+- Local model execution is the default routing path when an adequate local capability is available.
+- External providers are escalation resources only when the local capability is unavailable, insufficient, provider-specific, or otherwise explicitly authorized.
+- A provider's quota or free-generation limit must not become an APEX-wide workflow failure.
+- Gabby must operate through a provider-neutral model abstraction and real capability/action execution rather than keyword-only simulated responses.
+- Raw credentials remain outside Gabby's conversation state and frontend state; Gatekeeper receives credential references rather than secrets.
+- Desktop/local-machine inference and phone client operation are architectural targets, not verified runtime facts until tested.
 
 ## 13. Current Boundary
 
