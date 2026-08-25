@@ -62,7 +62,7 @@ export function createGoogleAIStudio(options: { apiKey?: string; model?: string 
         });
         return {
           id: interaction.id || null,
-          text: interaction.output_text || interaction.output || '',
+          text: interaction.output_text || (interaction as unknown as { output?: string }).output || '',
           status: 'CONNECTED',
           raw: interaction,
         };
