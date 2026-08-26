@@ -32,7 +32,7 @@ const materials: Material[] = [
   { name: "Stealth Matte", r: .20, g: .20, b: .22, className: "from-gray-900 to-zinc-950 border-gray-700" }
 ];
 
-const now = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const now = () => "9:41 PM";
 
 export default function ApexTerminalMaster() {
   const [leftCollapsed, setLeftCollapsed] = useState(false);

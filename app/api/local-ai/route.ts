@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { makeVeo, sha256 } from "@/lib/apex/truth";
+import { makeVeo, sha256 } from "../../../lib/apex/truth";
 
 const OLLAMA_BASE = process.env.APEX_OLLAMA_URL ?? "http://127.0.0.1:11434";
 const TIMEOUT_MS = 1500;
