@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity, Box, Brain, Check, ChevronDown, ChevronLeft, ChevronRight,
   CircleDot, Eye, GitBranch, Image as ImageIcon, Layers, Lightbulb,
@@ -20,10 +20,9 @@ export default function CharacterStudioPage() {
   const [status, setStatus] = useState('READY');
   const [generated, setGenerated] = useState(false);
 
-  useState(() => {
-    if (typeof window !== 'undefined') setMounted(true);
-    return null;
-  });
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const runGenerate = () => {
     setStatus('GENERATING');
