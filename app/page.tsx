@@ -1,5 +1,5 @@
-import CharacterStudioPage from './character-studio/page';
+import ApexTerminalMaster from '../src/components/ApexTerminalMaster';
 
 export default function Home() {
-  return <CharacterStudioPage />;
+  return <ApexTerminalMaster />;
 }
