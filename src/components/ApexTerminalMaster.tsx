@@ -55,10 +55,10 @@ export default function ApexTerminalMaster() {
   });
   const [connectors, setConnectors] = useState<ConnectedApp[]>([
     { id: "app-local-ai", name: "Local Inference (Ollama)", category: "Inference", icon: "⚡", endpoint: "http://localhost:11434", operationalStatus: "CHECKING", governanceStatus: "VERIFIED", lastChecked: null },
-    { id: "app-github", name: "GitHub GitOps", category: "VCS", icon: "🐙", endpoint: "https://api.github.com", operationalStatus: "CONNECTED", governanceStatus: "VERIFIED", lastChecked: now() },
-    { id: "app-vercel", name: "Vercel Edge", category: "Deploy", icon: "▲", endpoint: "https://api.vercel.com", operationalStatus: "CONFIGURED", governanceStatus: "APPROVED", lastChecked: null },
-    { id: "app-stripe", name: "Stripe Settlement", category: "Finance", icon: "💳", endpoint: "https://api.stripe.com", operationalStatus: "CONFIGURED", governanceStatus: "APPROVED", lastChecked: null },
-    { id: "app-supabase", name: "Supabase Core", category: "Database", icon: "⚡", endpoint: "https://supabase.co", operationalStatus: "CONFIGURED", governanceStatus: "TESTED", lastChecked: null }
+    { id: "app-github", name: "GitHub GitOps", category: "VCS", icon: "🐙", endpoint: "https://github.com", operationalStatus: "UNKNOWN", governanceStatus: "RESEARCHED", lastChecked: null },
+    { id: "app-vercel", name: "Vercel Edge", category: "Deploy", icon: "▲", endpoint: "https://vercel.com", operationalStatus: "UNKNOWN", governanceStatus: "RESEARCHED", lastChecked: null },
+    { id: "app-stripe", name: "Stripe Settlement", category: "Finance", icon: "💳", endpoint: "https://stripe.com", operationalStatus: "UNKNOWN", governanceStatus: "RESEARCHED", lastChecked: null },
+    { id: "app-supabase", name: "Supabase Core", category: "Database", icon: "⚡", endpoint: "https://supabase.com", operationalStatus: "UNKNOWN", governanceStatus: "RESEARCHED", lastChecked: null }
   ]);
   const [audit, setAudit] = useState<VerificationEvidenceObject[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -94,7 +94,7 @@ export default function ApexTerminalMaster() {
 
   const dispatchGabby = async (e: React.FormEvent) => {
     e.preventDefault(); const command = chatInput.trim(); if (!command) return; setChatInput(""); setProcessing(true);
-    setConversation(p => [...p, { id: `MSG_${Date.now()}`, sender: "ARCHITECT", text: command, timestamp: now() }]); recordAudit("GABBY_DISPATCH", "CONNECTED", "TESTED", "INTENT_CAPTURE", `Dispatched command: "${command}"`);
+    setConversation(p => [...p, { id: `MSG_${Date.now()}`, sender: "ARCHITECT", text: command, timestamp: now() }]); recordAudit("GABBY_DISPATCH", "CONFIGURED", "CANDIDATE", "INTENT_CAPTURE", `Captured command locally: "${command}"`);
     if (localStatus === "CONNECTED" && localModel) {
       const model = localModel.split(",")[0].trim();
       try { const r = await fetch("http://localhost:11434/api/generate", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({model, prompt:`APEX SYSTEM PROMPT: You are Gabby, real-time AI operator. Give one concise technical status for: "${command}".`, stream:false}) });
@@ -103,7 +103,7 @@ export default function ApexTerminalMaster() {
     }
     const p = command.toLowerCase(); let reply = `Command acknowledged: "${command}". Handled via deterministic APEX Gatekeeper rules.`;
     if (p.includes("verify") || p.includes("probe")) { void probeLocalDaemon(); reply = "System verification sweep triggered across local endpoints."; }
-    else if (p.includes("gold") || p.includes("material")) { setMaterialIndex(3); setProject(x => ({...x, activeCharacter:{...x.activeCharacter, materialPreset:"Gold Alloy PBR"}})); reply = "Character material set to Gold Alloy PBR in the active renderer state."; recordAudit("CHARACTER_STUDIO", "CONNECTED", "TESTED", "SHADER_MUTATE", "Applied Gold Alloy PBR selection"); }
+    else if (p.includes("gold") || p.includes("material")) { setMaterialIndex(3); setProject(x => ({...x, activeCharacter:{...x.activeCharacter, materialPreset:"Gold Alloy PBR"}})); reply = "Character material set to Gold Alloy PBR in the active renderer state."; recordAudit("CHARACTER_STUDIO", "CONFIGURED", "TESTED", "SHADER_MUTATE", "Applied Gold Alloy PBR selection in local renderer state"); }
     setConversation(p => [...p, {id:`MSG_GABBY_${Date.now()}`, sender:"GABBY", text:reply, timestamp:now()}]); setProcessing(false);
   };
 
@@ -113,7 +113,7 @@ export default function ApexTerminalMaster() {
   };
   const launchIntegration = (name: string, endpoint: string) => {
     const opened = window.open(endpoint, "_blank", "noopener,noreferrer");
-    recordAudit(name.toUpperCase().replace(/\\s+/g, "_"), opened ? "CONNECTED" : "FAILED", opened ? "TESTED" : "REJECTED", opened ? "LAUNCH_WINDOW" : "POPUP_BLOCKED", opened ? `Opened ${name}` : `Browser blocked launch for ${name}`);
+    recordAudit(name.toUpperCase().replace(/\\s+/g, "_"), opened ? "UNKNOWN" : "FAILED", opened ? "RESEARCHED" : "REJECTED", opened ? "PUBLIC_LAUNCH_ONLY" : "POPUP_BLOCKED", opened ? `Opened public ${name} site; authentication and API execution are not verified` : `Browser blocked launch for ${name}`);
   };
   const progress = Math.round(project.milestonesVerified / project.milestonesTotal * 100);
   const nav = [{id:"DASHBOARD",label:"DASHBOARD",Icon:Grid},{id:"PROJECTS",label:"PROJECTS",Icon:FolderKanban},{id:"TOOLS",label:"TOOLS",Icon:Wrench},{id:"ENGINES",label:"ENGINES",Icon:Cpu},{id:"CONNECTIONS",label:"CONNECTIONS",Icon:Link2},{id:"AUDIT LOG",label:"AUDIT LOG",Icon:ShieldCheck},{id:"SETTINGS",label:"SETTINGS",Icon:Settings}];
