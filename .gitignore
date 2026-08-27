@@ -1,9 +1,15 @@
-.apex/goldies-gcp-state.env
-.apex/goldies-gcp-state.json
-.env
-.env.*
-!.env.example
-__pycache__/
-*.py[cod]
-node_modules/
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
 .DS_Store
