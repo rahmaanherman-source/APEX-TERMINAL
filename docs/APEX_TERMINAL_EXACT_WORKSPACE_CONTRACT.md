@@ -1,182 +1,88 @@
-# APEX TERMINAL — EXACT WORKSPACE CONTRACT
+# APEX 365 — EXACT OWNER WORKSPACE CONTRACT
 
 **Status:** LOCKED / CANONICAL
-**Purpose:** Prevent any builder, agent, developer, or future implementation from reducing the supplied APEX Terminal reference to an approximate dashboard.
+**Scope:** APEX 365 owner/developer hub only.
 
-## 1. SOURCE OF TRUTH
+## SOURCE OF TRUTH
 
-The supplied APEX Terminal reference image is the exact visual and information-architecture source of truth for the root workspace.
+The supplied APEX 365 reference image is the exact visual and information-architecture source of truth for the owner's root workspace.
 
-DO NOT reinterpret it.
-DO NOT redesign it.
-DO NOT simplify it.
-DO NOT replace it with a generic SaaS dashboard.
-DO NOT remove panels because they are difficult to implement.
+This is the owner's internal command center for creating, building, structuring, connecting, operating, and verifying APEX.
 
-The implementation must reproduce the same workspace composition and preserve the existing APEX functional floor.
+It is **not** the customer-facing product experience.
 
-## 2. ROOT WORKSPACE — REQUIRED REGIONS
+## ROOT WORKSPACE
 
-```text
-APEX TERMINAL ROOT
-├── HEADER
-│   ├── APEX TERMINAL identity
-│   ├── GABBY command/search input
-│   ├── Truth / verification state
-│   └── Owner / project context
-│
-├── LEFT: WORKSPACE
-│   ├── Dashboard
-│   ├── Projects
-│   ├── Tools
-│   ├── Engines
-│   ├── Connections
-│   ├── Marketplace
-│   ├── Audit Log
-│   ├── Memory Slabs
-│   └── Settings
-│
-├── LEFT-CENTER: CONNECTED APPS
-│   └── Provider inventory from the real registry
-│
-├── CENTER: 3D CREATION STUDIO
-│   ├── Create
-│   ├── Characters
-│   ├── Worlds
-│   ├── Animation
-│   ├── Render
-│   ├── Sculpt
-│   ├── Model
-│   ├── Texture
-│   ├── Rig
-│   ├── Animate
-│   ├── Light
-│   └── Render
-│
-├── RIGHT: CONCIERGE GABBY
-│   ├── New Project
-│   ├── Open Project
-│   ├── Current Project
-│   └── Project verification/status
-│
-├── RIGHT-CENTER: ENGINES
-│   ├── APEX Engine
-│   ├── APEX Render
-│   ├── Physics
-│   ├── Audio Engine
-│   ├── AI Generation
-│   └── World Builder
-│
-├── LOWER LEFT: SYSTEM STATUS
-│   ├── CPU
-│   ├── GPU
-│   ├── RAM
-│   ├── VRAM
-│   └── Network
-│
-├── LOWER CENTER-LEFT: FOLEY & SOUND DESIGN
-│
-├── LOWER CENTER: AI DIALOGUE & ADAK
-│
-├── LOWER CENTER-RIGHT: TIMELINE / SEQUENCE
-│   ├── Video
-│   ├── Dialogue
-│   ├── Foley
-│   ├── Music
-│   └── SFX
-│
-├── RIGHT LOWER: AUDIT FEED (REAL-TIME)
-│   └── timestamped evidence events
-│
-└── BOTTOM COMMAND BAR
-    ├── BUILD
-    ├── RUN
-    ├── TEST
-    ├── VERIFY
-    ├── DEPLOY
-    ├── PUBLISH
-    ├── APEX REAL-TIME ENGINE
-    ├── Truth status
-    └── Gabby online status
-```
+The root shell contains the exact required regions:
 
-## 3. UNDER-DASHBOARD ARCHITECTURE
+- APEX Terminal identity/header
+- Gabby command/search
+- Truth/verification state
+- owner/project context
+- Workspace navigation
+- Connected Apps
+- 3D Creation Studio
+- Concierge Gabby
+- Project status
+- Engines
+- System Status
+- Foley & Sound Design
+- AI Dialogue & ADAK
+- Timeline / Sequence
+- real-time Audit Feed
+- BUILD / RUN / TEST / VERIFY / DEPLOY / PUBLISH
+- APEX Real-Time Engine
+- Truth status
+- Gabby online status
 
-The root shell is the front door. Everything else is reached through its workspace navigation. Do not create competing root dashboards.
+## FRONT-DOOR LAW
 
-```text
-DASHBOARD
-├── Projects
-├── Tools
-├── Engines
-├── Connections / Ecosystem
-├── Marketplace
-├── Audit Log
-├── Memory Slabs
-├── Settings
-├── Revenue
-├── Gabby
-├── Character Studio
-├── Worlds
-├── Animation
-├── Render
-├── Terminal
-├── Vault / Gatekeeper
-├── Truth Gate
-└── Provider Registry
-```
+This root workspace is the permanent APEX 365 front door.
 
-## 4. FUNCTIONAL CONTRACT
+Every supported device is a viewport into this same owner workspace. Computer, phone, tablet, and future devices may adapt dimensions and interaction mechanics, but they must not create a different shell or deteriorate the canonical information architecture.
 
-Every visible control must resolve to a real outcome:
+## UNDER-DASHBOARD
+
+Everything else is reached through the root navigation. No competing owner dashboard may be created.
+
+Destinations include:
+
+Dashboard, Projects, Tools, Engines, Connections, Marketplace, Audit Log, Memory Slabs, Settings, Revenue, Gabby, Character Studio, Worlds, Animation, Render, Terminal, Vault/Gatekeeper, Truth Gate, Provider Registry, and other owner capabilities approved for APEX 365.
+
+## FUNCTIONAL CONTRACT
 
 `CONTROL → ROUTE → AUTH → PERMISSION → CAPABILITY → EXECUTION → READBACK → EVIDENCE → AUDIT → UI STATE`
 
-Allowed outcomes:
-- navigation
-- state transition
-- real adapter execution
-- workspace open/close
-- configuration flow
-- truthful disabled state
-- truthful error state
+Every visible control must have a real outcome: navigation, state transition, real execution, configuration, truthful disabled state, or truthful error state.
 
-A decorative control with no outcome is a defect.
+## TRUTH CONTRACT
 
-## 5. TRUTH CONTRACT
+`DOCUMENTED → CONFIGURED → CONNECTED → RUNNABLE → TESTED → VERIFIED`
 
-```text
-DOCUMENTED → CONFIGURED → CONNECTED → RUNNABLE → TESTED → VERIFIED
-```
+Never manufacture VERIFIED. Never confuse a registry entry with a live connection. Never confuse a click with successful execution.
 
-Never skip a state. Never manufacture VERIFIED.
+## PRESERVATION LAW
 
-`REGISTERED ≠ CONNECTED`
-`CONNECTED ≠ EXECUTED`
-`EXECUTED ≠ VERIFIED`
-`CLICKED ≠ SUCCESS`
-
-## 6. PRESERVATION LAW
-
-The current APEX application is the functional floor. Existing routes, services, providers, memory, audit, Truth Gate, Vault/Gatekeeper, Terminal, Character Studio, Worlds, Animation, Render, Gabby, Build, Run, Test, Verify, Deploy, and Publish capabilities must remain reachable.
+The existing APEX/GODSPEED implementation is the functional floor.
 
 **CHANGE THE SHELL WITHOUT LOSING THE ENGINE.**
 
 Reuse first. Extend second. Generate last.
 
-## 7. ACCEPTANCE GATE
+No duplicate terminal. No duplicate engine. No competing registry. No second owner dashboard.
 
-The shell is not complete until:
+## CUSTOMER SEPARATION
 
-1. The reference composition is reproduced.
-2. All required regions exist in their assigned positions.
-3. Existing functionality remains reachable.
-4. Every visible control has a real path or truthful disabled/error state.
-5. Gabby operates through the real orchestration path.
-6. Provider status comes from real adapter/registry state.
-7. Audit events contain real timestamps and evidence.
-8. Build, Run, Test, Verify, Deploy, and Publish expose truthful state.
-9. Browser, API, database, and runtime tests pass where configured.
-10. A second 365° review finds no missing, broken, duplicated, disconnected, or unverified primary capability.
+Customer-facing applications are downstream from APEX 365.
 
-**NO APPROXIMATION. NO FAKE GREEN. NO UNVERIFIED COMPLETION.**
+`APEX 365 OWNER HUB → BUILD / GOVERN / OPERATE → CUSTOMER PRODUCTS`
+
+Customer interfaces must not redefine the owner hub, inherit its internal controls, or cause visual/feature bleed into APEX 365.
+
+## PERMANENT LOCK
+
+This contract does not change until the owner explicitly changes it and says otherwise.
+
+No AI builder, developer, contractor, framework, responsive system, customer application, or future implementation may override this contract by assumption.
+
+**THIS IS APEX 365. THIS IS THE OWNER HUB. THIS IS THE FRONT DOOR. THIS SHELL IS LOCKED.**
