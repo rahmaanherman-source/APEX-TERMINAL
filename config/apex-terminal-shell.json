@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "status": "LOCKED",
+  "shell": "APEX_TERMINAL_ROOT",
+  "visual_source_of_truth": "SUPPLIED_APEX_TERMINAL_REFERENCE",
+  "approximation_allowed": false,
+  "root_regions": [
+    {"id":"workspace","position":"left","required":true,"items":["dashboard","projects","tools","engines","connections","marketplace","audit-log","memory-slabs","settings"]},
+    {"id":"connected_apps","position":"left-center","required":true,"source":"provider-registry"},
+    {"id":"creation_studio","position":"center","required":true,"tabs":["create","characters","worlds","animation","render"],"tools":["sculpt","model","texture","rig","animate","light","render"]},
+    {"id":"gabby","position":"right","required":true,"actions":["new-project","open-project"],"source":"gabby-runtime"},
+    {"id":"engines","position":"right-center","required":true,"items":["apex-engine","apex-render","physics","audio-engine","ai-generation","world-builder"]},
+    {"id":"system_status","position":"lower-left","required":true,"metrics":["cpu","gpu","ram","vram","network"]},
+    {"id":"foley_sound_design","position":"lower-center-left","required":true},
+    {"id":"ai_dialogue_adak","position":"lower-center","required":true},
+    {"id":"timeline_sequence","position":"lower-center-right","required":true,"tracks":["video","dialogue","foley","music","sfx"]},
+    {"id":"audit_feed","position":"right-lower","required":true,"realtime":true},
+    {"id":"command_bar","position":"bottom","required":true,"actions":["build","run","test","verify","deploy","publish"]},
+    {"id":"apex_realtime_engine","position":"bottom-center","required":true},
+    {"id":"truth_status","position":"bottom-right","required":true,"source":"truth-gate"},
+    {"id":"gabby_status","position":"bottom-right","required":true,"source":"gabby-runtime"}
+  ],
+  "under_dashboard": [
+    "projects","tools","engines","connections","marketplace","audit-log","memory-slabs","settings","revenue","gabby","character-studio","worlds","animation","render","terminal","vault-gatekeeper","truth-gate","provider-registry"
+  ],
+  "control_contract": ["route","auth","permission","capability","execution","readback","evidence","audit","ui-state"],
+  "truth_states": ["DOCUMENTED","CONFIGURED","CONNECTED","RUNNABLE","TESTED","VERIFIED","NOT_CONFIGURED","CREDENTIAL_REQUIRED","PERMISSION_REQUIRED","SERVICE_UNAVAILABLE","EXECUTION_FAILED","BLOCKED"],
+  "laws": [
+    "THIS IS THE SHELL",
+    "CHANGE THE SHELL WITHOUT LOSING THE ENGINE",
+    "NO DEAD BUTTONS",
+    "NO MOCK SUCCESS",
+    "NO FAKE VERIFIED STATES",
+    "NO UNVERIFIED COMPLETION",
+    "REUSE_FIRST_EXTEND_SECOND_GENERATE_LAST"
+  ]
+}
