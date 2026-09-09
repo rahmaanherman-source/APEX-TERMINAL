@@ -26,6 +26,40 @@ GABBY / Chameleon Core translates intent and operates tools. The deterministic C
 - Last-24-hour repository reconciliation audit
 - Local-first AI runtime contract
 - APEX Terminal master reference artifact
+- **APEX Zero-Trust Bootstrap Lifecycle: sanitization, isolation, readiness probing, circuit breaking, bounded recovery, quarantine, and persistent telemetry**
+
+## APEX Zero-Trust Bootstrap Lifecycle
+
+The bootstrap lifecycle adds three operational gates around executable sidecars:
+
+1. **Gate 1 — Sanitization:** AST-based source policy checks, dangerous-call/import blocking, credential-pattern detection, syntax validation, and file-size limits.
+2. **Gate 2 — Isolation:** each sidecar runs in an independent process/session. Process creation is never treated as proof of health.
+3. **Gate 3 — Monitoring:** readiness probes, durable telemetry, circuit breakers, bounded exponential-backoff recovery, and quarantine after repeated failure.
+
+Canonical lifecycle:
+
+`BOOTSTRAP → INTEGRITY → SANITIZE → VERIFY → REGISTER → ISOLATE → START → PROBE → AUTHORIZE → ROUTE → MONITOR → BREAK → RECOVER → QUARANTINE → BLACK BOX → VERIFY RECOVERY → PROMOTE / ROLLBACK`
+
+The existing `apex_core.py` remains the APEX control-plane lifecycle authority. The bootstrap/router files provide the Gate 1–3 runtime surfaces without replacing the canonical control plane.
+
+### Bootstrap commands
+
+```bash
+pip install -r requirements-apex-core.txt
+python apex_bootstrap.py validate examples/sidecar_a.py
+python apex_bootstrap.py start --config config/apex-sidecars.json
+python apex_bootstrap.py monitor
+```
+
+### Verification
+
+```bash
+pytest -q tests/test_comparator.py tests/test_integration_registry.py tests/test_apex_core.py tests/test_bootstrap_lifecycle.py
+```
+
+A sidecar is only reported `HEALTHY` after its readiness probe passes. Runtime evidence is recorded under `.apex/telemetry/`. The lifecycle implementation deliberately avoids absolute claims such as “immune to crashes” or “zero security breaches”; resilience is measured by observed evidence and bounded failure behavior.
+
+See `docs/APEX_Zero_Trust_Whitepaper.md`.
 
 ## Canonical shell law
 
@@ -66,12 +100,14 @@ See `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md` for the canonical workflow
 - `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md`
 - `docs/APEX_HUB_EXACT_SHELL_DIRECTIVE.md`
 - `docs/APEX_LOCAL_FIRST_AI_RUNTIME_CONTRACT.md`
+- `docs/APEX_Zero_Trust_Whitepaper.md`
 - `docs/CANONICAL_STATE_SCHEMA.md`
 - `docs/MEMORY_SLAB.md`
 - `docs/audits/APEX_LAST_24H_RECONCILIATION_2026-08-21.md`
 - `reference/APEX_TERMINAL_MASTER_REFERENCE.tsx`
 - `core/system_status_contract.json`
 - `config/integration-registry.json`
+- `config/apex-sidecars.json`
 
 ## Truth states
 
