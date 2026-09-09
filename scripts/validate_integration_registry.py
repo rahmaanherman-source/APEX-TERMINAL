@@ -22,9 +22,22 @@ def validate() -> None:
         "INSTALLED",
         "CONFIGURED",
         "CONNECTED",
+        "CAPABILITY_PROBED",
         "TESTED",
+        "PRODUCTION_READY",
     ]
-    assert truth == ["VERIFIED", "OBSERVED", "BLOCKED", "FAILED", "UNKNOWN"]
+    assert truth == [
+        "VERIFIED",
+        "OBSERVED",
+        "BLOCKED",
+        "FAILED",
+        "UNKNOWN",
+        "CONNECTED_NOT_VERIFIED",
+        "REQUIRES_CONFIGURATION",
+        "MISSING_CONNECTOR",
+        "UNAVAILABLE",
+        "STALE",
+    ]
 
     ids = [provider["id"] for provider in providers]
     assert len(ids) == len(set(ids)), "provider IDs must be unique"
@@ -34,7 +47,7 @@ def validate() -> None:
         assert provider["category"]
         assert provider["modes"]
         if "initial_truth_state" in provider:
-            assert provider["initial_truth_state"] in {"UNKNOWN", "BLOCKED"}
+            assert provider["initial_truth_state"] in set(truth)
         if "initial_lifecycle_state" in provider:
             assert provider["initial_lifecycle_state"] == "DISCOVERED"
 
