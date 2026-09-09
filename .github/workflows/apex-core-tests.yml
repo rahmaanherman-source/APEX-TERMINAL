@@ -15,5 +15,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements-dev.txt
+      - run: pip install -r requirements-apex-core.txt
       - run: python scripts/validate_integration_registry.py
-      - run: pytest -q tests/test_comparator.py tests/test_integration_registry.py
+      - run: pytest -q tests/test_comparator.py tests/test_integration_registry.py tests/test_apex_core.py tests/test_bootstrap_lifecycle.py
