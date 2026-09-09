@@ -1,0 +1,4 @@
+# APEX Core production runtime dependencies
+psutil>=6,<8
+
+# Development/test dependencies are maintained separately in requirements-dev.txt.
