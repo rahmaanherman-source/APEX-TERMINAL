@@ -1,4 +1,6 @@
-# APEX Core production runtime dependencies
+# APEX Core + Bootstrap production/runtime dependencies
 psutil>=6,<8
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
 
 # Development/test dependencies are maintained separately in requirements-dev.txt.
