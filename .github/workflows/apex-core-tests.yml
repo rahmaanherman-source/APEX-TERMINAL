@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main]
 
+# Verification gate: the bootstrap lifecycle is tested against the committed tree.
 jobs:
   comparator-and-registry:
     runs-on: ubuntu-latest
