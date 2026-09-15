@@ -134,3 +134,11 @@ Added:
 
 The browser bridge is deliberately local-only. Production packaging can use Chrome/Edge Native Messaging rather than exposing a network service.
 
+
+## APEX Chameleon Tab
+
+The canonical build prompt for the persistent **FEED | TERMINAL** route, terminal sidecar, type + voice Work/Talk mode, copy/send bridge, runtime detection, and truth-gated readback is:
+
+- `docs/APEX_CHAMELEON_TAB_BUILD_PROMPT.md`
+
+This is the next additive build layer on top of the existing Terminal Bridge and Gabby ↔ Terminal Sidecar + Voice specification. The repository remains the canonical control plane; AI Studio or another builder is an accelerator only.
