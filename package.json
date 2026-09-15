@@ -33,7 +33,6 @@
     "ollama": "^0.1.0",
     "dockerode": "^4.0.0",
     "simple-git": "^3.21.0",
-    "@vercel/client": "^0.3.0",
     "stripe": "^14.0.0",
     "@cloudflare/workers-types": "^4.20240117.0",
     "pg": "^8.11.3",
