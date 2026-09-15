@@ -80,20 +80,31 @@ if (Get-Command DISM.exe -ErrorAction SilentlyContinue) {
 
 $Downloads = Join-Path $env:USERPROFILE "Downloads"
 if (Test-Path $Downloads) {
-  Log "Removing only duplicate-looking installer copies in Downloads."
-  $patterns = @("^Claude Setup.*\.exe$","^.*Setup.* \(\d+\)\.exe$","^.*Installer.* \(\d+\)\.exe$")
-  foreach ($pattern in $patterns) {
-    Get-ChildItem $Downloads -File -Force -ErrorAction SilentlyContinue |
-      Where-Object { $_.Name -match $pattern } |
-      Group-Object { ($_.Name -replace " \(\d+\)(?=\.exe$)", "") } |
-      ForEach-Object {
-        $copies = $_.Group | Sort-Object LastWriteTime -Descending
-        if ($copies.Count -gt 1) {
-          $copies | Select-Object -Skip 1 | ForEach-Object {
-            try { Remove-Item -LiteralPath $_.FullName -Force; Log "Removed duplicate installer: $($_.Name)" } catch {}
-          }
-        }
+  Log "Hash-checking duplicate-looking installers in Downloads."
+  $candidates = Get-ChildItem $Downloads -File -Force -ErrorAction SilentlyContinue |
+    Where-Object {
+      $_.Name -match "Claude Setup.*\.exe$" -or
+      $_.Name -match "^.*Setup.* \(\d+\)\.exe$" -or
+      $_.Name -match "^.*Installer.* \(\d+\)\.exe$"
+    }
+
+  $hashed = foreach ($file in $candidates) {
+    try {
+      $h = Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256 -ErrorAction Stop
+      [pscustomobject]@{ File=$file; Hash=$h.Hash }
+    } catch {}
+  }
+
+  $hashed | Group-Object Hash | ForEach-Object {
+    if ($_.Count -gt 1) {
+      $copies = $_.Group | Sort-Object { $_.File.LastWriteTime } -Descending
+      $copies | Select-Object -Skip 1 | ForEach-Object {
+        try {
+          Remove-Item -LiteralPath $_.File.FullName -Force
+          Log "Removed byte-identical duplicate installer: $($_.File.Name)"
+        } catch {}
       }
+    }
   }
 }
 
