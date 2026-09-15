@@ -1,0 +1,14 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>APEX Terminal</title></head>
+<body style="font-family:system-ui;min-width:300px;padding:14px">
+<h3>APEX Terminal</h3>
+<p id="status">Checking bridge...</p>
+<input id="token" placeholder="Local bridge token" style="width:100%;box-sizing:border-box">
+<select id="mode" style="width:100%;margin-top:8px">
+<option value="terminal">TERMINAL — visible tab</option>
+<option value="exec">EXEC — return output</option>
+</select>
+<textarea id="command" placeholder="Paste/type PowerShell here" style="width:100%;height:120px;margin-top:8px;box-sizing:border-box"></textarea>
+<button id="send" style="width:100%;margin-top:8px">SEND TO TERMINAL</button>
+<script src="popup.js"></script>
+</body></html>
