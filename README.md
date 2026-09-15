@@ -118,3 +118,19 @@ If the system cannot observe reality sufficiently to decide, it does not guess.
 ## Development
 
 The existing application and repository structure are preserved. New capability is additive and must be tested before being called verified.
+
+
+## APEX Terminal Bridge — desktop control
+
+The repository now includes a local bridge for the requested Gabby/APEX terminal routing workflow:
+
+**GABBY / APEX → TERMINAL TOGGLE → 127.0.0.1 → APEX Terminal Bridge → Windows Terminal / PowerShell**
+
+Added:
+- `desktop-bridge/apex-terminal-bridge.ps1` — localhost-only bridge with a per-machine token.
+- `desktop-bridge/extension/` — Chromium/Edge extension popup plus selected-text context action.
+- `app/terminal-bridge/page.tsx` — dedicated one-function terminal-bridge surface.
+- `scripts/APEX-Full-System-Clean.ps1` — low-impact storage cleanup using a 30-day rule only for disposable/cache locations and protecting arbitrary user/project files.
+
+The browser bridge is deliberately local-only. Production packaging can use Chrome/Edge Native Messaging rather than exposing a network service.
+
