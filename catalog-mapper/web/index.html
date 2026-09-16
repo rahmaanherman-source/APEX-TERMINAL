@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Universal Catalog Mapper</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <span class="eyebrow">SINGLE-PURPOSE PRODUCT TOOL</span>
+        <h1>Universal Catalog Mapper</h1>
+        <p>Turn a bulk catalog into the exact destination format, with assets and validation.</p>
+      </div>
+      <span id="state" class="state neutral">READY</span>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <h2>1. Source catalog</h2>
+        <input id="file" type="file" accept=".csv,text/csv">
+        <textarea id="source" placeholder="Or paste CSV here..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>2. Destination</h2>
+        <select id="destination"></select>
+        <div id="templateBox" class="hidden">
+          <label>Destination template (required for this destination)</label>
+          <textarea id="template" placeholder="Paste the official destination CSV template here..."></textarea>
+        </div>
+        <button id="map">MAP + VALIDATE</button>
+      </div>
+    </section>
+
+    <section id="results" class="card hidden">
+      <div class="metrics">
+        <div><strong id="products">0</strong><span>products</span></div>
+        <div><strong id="parts">0</strong><span>output files</span></div>
+        <div><strong id="problemCount">0</strong><span>problems</span></div>
+      </div>
+      <pre id="report"></pre>
+      <button id="download" disabled>DOWNLOAD GENERATED CSV</button>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
