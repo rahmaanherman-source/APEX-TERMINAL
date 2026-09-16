@@ -1,0 +1,54 @@
+{
+  "version": "1",
+  "destinations": [
+    {
+      "id": "generic-csv",
+      "label": "Generic CSV",
+      "format": "csv",
+      "template_required": false,
+      "headers": ["title", "description", "sku", "price", "cost", "inventory", "size", "color", "category", "image_url", "image_urls"],
+      "required": ["title", "sku"]
+    },
+    {
+      "id": "shopify-csv",
+      "label": "Shopify product CSV",
+      "format": "csv",
+      "template_required": false,
+      "max_bytes": 15000000,
+      "headers": ["Handle", "Title", "Body (HTML)", "Vendor", "Product Category", "Type", "Tags", "Published", "Option1 Name", "Option1 Value", "Option2 Name", "Option2 Value", "Variant SKU", "Variant Price", "Variant Inventory Qty", "Image Src", "Image Position"],
+      "required": ["Handle", "Title", "Variant SKU"]
+    },
+    {
+      "id": "amazon-template",
+      "label": "Amazon official template",
+      "format": "xlsx-or-csv",
+      "template_required": true,
+      "headers": [],
+      "required": []
+    },
+    {
+      "id": "tiktok-shop-template",
+      "label": "TikTok Shop official template",
+      "format": "xlsx-or-csv",
+      "template_required": true,
+      "headers": [],
+      "required": []
+    },
+    {
+      "id": "woocommerce-csv",
+      "label": "WooCommerce product CSV",
+      "format": "csv",
+      "template_required": false,
+      "headers": ["ID", "Type", "SKU", "Name", "Published", "Is featured?", "Visibility in catalog", "Short description", "Description", "Date sale price starts", "Date sale price ends", "Tax status", "In stock?", "Stock", "Regular price", "Sale price", "Categories", "Images"],
+      "required": ["SKU", "Name"]
+    },
+    {
+      "id": "etsy-csv",
+      "label": "Etsy catalog CSV",
+      "format": "csv",
+      "template_required": true,
+      "headers": [],
+      "required": []
+    }
+  ]
+}
