@@ -1,0 +1,19 @@
+name: catalog-mapper-tests
+
+on:
+  push:
+    paths: ["catalog-mapper/**"]
+  pull_request:
+    paths: ["catalog-mapper/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run tests
+        working-directory: catalog-mapper
+        run: python -m unittest discover -s tests -v
