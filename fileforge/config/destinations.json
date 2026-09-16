@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "destinations": [
+    {
+      "id": "shopify",
+      "name": "Shopify",
+      "status": "v1",
+      "schemaSource": "official-documentation-required",
+      "outputTypes": ["csv"]
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "status": "planned",
+      "outputTypes": ["csv", "xlsx"]
+    },
+    {
+      "id": "syncee",
+      "name": "Syncee",
+      "status": "planned",
+      "outputTypes": ["csv", "xlsx"]
+    },
+    {
+      "id": "tiktok-shop",
+      "name": "TikTok Shop",
+      "status": "planned",
+      "outputTypes": ["csv", "xlsx"]
+    }
+  ]
+}
