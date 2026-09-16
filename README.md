@@ -134,3 +134,12 @@ Added:
 
 The browser bridge is deliberately local-only. Production packaging can use Chrome/Edge Native Messaging rather than exposing a network service.
 
+
+
+## Commerce Launch surface
+
+The repository includes an additive /commerce launch surface for the business-validation workflow discussed in the current build session. It captures the evidence-first product screen, focused offer structure, creative-to-landing flow, and optional donation/support CTA.
+
+See docs/APEX_COMMERCE_LAUNCH_BLUEPRINT.md.
+
+The donation CTA is controlled by NEXT_PUBLIC_DONATION_URL; no payment destination is fabricated.
