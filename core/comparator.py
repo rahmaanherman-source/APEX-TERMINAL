@@ -52,7 +52,12 @@ def compare_system_status(
         }
 
     payload = actual.get("payload")
-    if not isinstance(payload, Mapping) or not execution_id:
+    required = desired.get("required_fields", [])
+    if (
+        not isinstance(payload, Mapping)
+        or not execution_id
+        or any(key not in payload for key in required)
+    ):
         return {
             "execution_id": execution_id,
             "tool": "system_status",
@@ -63,9 +68,8 @@ def compare_system_status(
             "checks": {"structure": False},
         }
 
-    required = desired.get("required_fields", [])
     checks = {
-        "structure": all(key in payload for key in required),
+        "structure": True,
         "types": all(
             [
                 isinstance(payload.get("status"), str),
