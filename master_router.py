@@ -67,6 +67,9 @@ class MasterRouter:
         self.sidecars[config.name] = sidecar
         env = os.environ.copy()
         env.update(config.env)
+        # The configured router port is the sidecar contract. Give child
+        # processes that port unless the adapter explicitly overrides it.
+        env.setdefault("PORT", str(config.port))
         try:
             sidecar.process = subprocess.Popen(
                 list(config.command),
@@ -78,7 +81,6 @@ class MasterRouter:
             )
             sidecar.pid = sidecar.process.pid
             self._event(config.name, "start", pid=sidecar.pid, status="STARTING")
-            # Process creation is NOT health proof. Probe explicitly.
             if await self.health_check(config.name):
                 sidecar.status = SidecarStatus.HEALTHY
                 sidecar.restart_count = 0
