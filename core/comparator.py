@@ -104,7 +104,7 @@ def compare_system_status(
     epsilon = float(desired.get("epsilon", 0.0))
     status = VERIFIED if delta <= epsilon and all(checks.values()) else FAILED
 
-    return {
+    result = {
         "execution_id": execution_id,
         "tool": "system_status",
         "delta": delta,
@@ -115,3 +115,6 @@ def compare_system_status(
         "latency_ms": latency,
         "readback_sha256": actual.get("readback_sha256"),
     }
+    if status != VERIFIED:
+        result["reason"] = "MISMATCHED_EVIDENCE"
+    return result
