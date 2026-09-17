@@ -38,20 +38,29 @@ def test_registry_contains_required_business_and_work_integrations():
 
 def test_registry_separates_lifecycle_from_truth_state():
     registry = load_registry()
-    assert registry["lifecycle_states"] == [
+    lifecycle = registry["lifecycle_states"]
+    required_prefix = [
         "DISCOVERED",
         "AVAILABLE",
         "INSTALLED",
         "CONFIGURED",
         "CONNECTED",
-        "TESTED",
     ]
+    assert lifecycle[:5] == required_prefix
+    assert "CAPABILITY_PROBED" in lifecycle
+    assert "TESTED" in lifecycle
+    assert "PRODUCTION_READY" in lifecycle
     assert registry["truth_states"] == [
         "VERIFIED",
         "OBSERVED",
         "BLOCKED",
         "FAILED",
         "UNKNOWN",
+        "CONNECTED_NOT_VERIFIED",
+        "REQUIRES_CONFIGURATION",
+        "MISSING_CONNECTOR",
+        "UNAVAILABLE",
+        "STALE",
     ]
 
 
