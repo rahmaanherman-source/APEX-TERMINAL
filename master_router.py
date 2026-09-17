@@ -67,8 +67,6 @@ class MasterRouter:
         self.sidecars[config.name] = sidecar
         env = os.environ.copy()
         env.update(config.env)
-        # The configured router port is the sidecar contract. Give child
-        # processes that port unless the adapter explicitly overrides it.
         env.setdefault("PORT", str(config.port))
         try:
             sidecar.process = subprocess.Popen(
@@ -81,14 +79,20 @@ class MasterRouter:
             )
             sidecar.pid = sidecar.process.pid
             self._event(config.name, "start", pid=sidecar.pid, status="STARTING")
-            if await self.health_check(config.name):
-                sidecar.status = SidecarStatus.HEALTHY
-                sidecar.restart_count = 0
-                self._event(config.name, "health_ok", pid=sidecar.pid)
-            else:
-                sidecar.status = SidecarStatus.UNHEALTHY
-                raise RuntimeError(sidecar.last_error or "readiness probe failed")
-            return sidecar
+
+            # Process creation is not health proof. Allow the child a short
+            # readiness window while continuing to probe the actual endpoint.
+            deadline = time.monotonic() + config.timeout
+            while time.monotonic() < deadline:
+                if await self.health_check(config.name):
+                    sidecar.status = SidecarStatus.HEALTHY
+                    sidecar.restart_count = 0
+                    self._event(config.name, "health_ok", pid=sidecar.pid)
+                    return sidecar
+                await asyncio.sleep(0.05)
+
+            sidecar.status = SidecarStatus.UNHEALTHY
+            raise RuntimeError(sidecar.last_error or "readiness probe failed")
         except Exception as exc:
             sidecar.status = SidecarStatus.UNHEALTHY
             sidecar.last_error = str(exc)
