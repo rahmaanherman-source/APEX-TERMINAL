@@ -1,5 +1,5 @@
 {
-  "version": "2.3",
+  "version": "2.4",
   "principle": "APEX connects and verifies; it does not clone or replace the provider.",
   "truth_authority": "APEX Comparator and Verify Gate",
   "provider_source_of_truth": "Each external provider remains authoritative for its own underlying records.",
@@ -193,6 +193,73 @@
           "VERIFY"
         ],
         "verification": "Credits, free tiers, promotions, quotas, and expiry are account/provider facts and remain UNVERIFIED until current evidence is observed."
+      },
+      "MULTI_ARTIFACT_PROJECT_GENERATION": {
+        "family": "agent",
+        "operation_modes": [
+          "CREATE",
+          "GENERATE",
+          "VERIFY"
+        ],
+        "verification": "Every requested artifact is independently recorded and verified; partial completion remains PARTIAL/REVIEW rather than VERIFIED."
+      },
+      "RESEARCH_TO_PROJECT": {
+        "family": "agent",
+        "operation_modes": [
+          "ANALYZE",
+          "CREATE",
+          "GENERATE",
+          "VERIFY"
+        ],
+        "verification": "Research sources, assumptions, calculations, generated artifacts, and execution evidence are retained separately."
+      },
+      "PRESENTATION_GENERATION": {
+        "family": "creative",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE"
+        ],
+        "verification": "Validate slide count, required content, citations/source references where requested, rendered output, and visual consistency."
+      },
+      "SPREADSHEET_GENERATION": {
+        "family": "data",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE",
+          "VERIFY"
+        ],
+        "verification": "Validate workbook structure, formulas, required sheets, calculated outputs, and rendered readability."
+      },
+      "WEBSITE_GENERATION": {
+        "family": "application",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE",
+          "VERIFY"
+        ],
+        "verification": "Validate routes, responsive behavior, interactive states, assets, runtime execution, and requested visual identity."
+      },
+      "ANIMATION_RICH_FRONTEND": {
+        "family": "creative",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE"
+        ],
+        "verification": "Validate animation triggers, timing, transitions, media playback, interaction behavior, and runtime performance."
+      },
+      "PROJECT_BRAND_SYSTEM": {
+        "family": "design",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE",
+          "VERIFY"
+        ],
+        "verification": "Validate reusable typography, color, imagery, motion, component, and asset rules against the project brief."
       }
     },
     "canonical_result": {
@@ -603,6 +670,81 @@
       ],
       "initial_lifecycle_state": "DISCOVERED",
       "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "kimi",
+      "category": "ai-agent",
+      "modes": [
+        "web",
+        "api",
+        "local"
+      ],
+      "models": [
+        {
+          "id": "kimi-k2.6",
+          "capabilities": [
+            "GENERAL_REASONING_AGENT",
+            "APP_FULL_STACK",
+            "WEBSITE_GENERATION",
+            "ANIMATION_RICH_FRONTEND",
+            "RESEARCH_TO_PROJECT"
+          ],
+          "status": "OBSERVED",
+          "evidence": "https://forum.moonshot.ai/t/meet-kimi-k2-6-advancing-open-source-coding/369"
+        },
+        {
+          "id": "kimi-k3",
+          "capabilities": [
+            "GENERAL_REASONING_AGENT",
+            "MULTI_ARTIFACT_PROJECT_GENERATION",
+            "PRESENTATION_GENERATION",
+            "SPREADSHEET_GENERATION",
+            "RESEARCH_TO_PROJECT"
+          ],
+          "status": "DISCOVERED",
+          "evidence": "https://www.moonshot.ai/"
+        }
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "REVIEW",
+      "notes": "Provider/model availability, credits, and hosted-plan entitlements are account/provider facts. Do not encode free or unlimited access as a verified property."
+    },
+    {
+      "id": "deepseek",
+      "category": "ai",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "models": [
+        {
+          "id": "deepseek-flash",
+          "version": "DeepSeek-V4.1-Flash",
+          "capabilities": [
+            "GENERAL_REASONING_AGENT",
+            "APP_FULL_STACK"
+          ],
+          "context": 1048576,
+          "vision": true,
+          "status": "OBSERVED",
+          "evidence": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        {
+          "id": "deepseek-v4-pro",
+          "version": "DeepSeek-V4-Pro-0813",
+          "capabilities": [
+            "GENERAL_REASONING_AGENT",
+            "APP_FULL_STACK"
+          ],
+          "context": 1048576,
+          "vision": false,
+          "status": "OBSERVED",
+          "evidence": "https://api-docs.deepseek.com/quick_start/pricing/"
+        }
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "REVIEW",
+      "notes": "DeepSeek's current API docs identify deepseek-flash as V4.1-Flash. Do not hard-code older V4 Flash aliases as the current model."
     }
   ],
   "verification_contract": {
