@@ -1,79 +1,609 @@
 {
-  "version": "2.2",
+  "version": "2.3",
   "principle": "APEX connects and verifies; it does not clone or replace the provider.",
   "truth_authority": "APEX Comparator and Verify Gate",
   "provider_source_of_truth": "Each external provider remains authoritative for its own underlying records.",
-  "lifecycle_states": ["DISCOVERED","AVAILABLE","INSTALLED","CONFIGURED","CONNECTED","CAPABILITY_PROBED","TESTED","PRODUCTION_READY"],
-  "truth_states": ["VERIFIED","OBSERVED","BLOCKED","FAILED","UNKNOWN","CONNECTED_NOT_VERIFIED","REQUIRES_CONFIGURATION","MISSING_CONNECTOR","UNAVAILABLE","STALE","REVIEW"],
+  "lifecycle_states": [
+    "DISCOVERED",
+    "AVAILABLE",
+    "INSTALLED",
+    "CONFIGURED",
+    "CONNECTED",
+    "CAPABILITY_PROBED",
+    "TESTED",
+    "PRODUCTION_READY"
+  ],
+  "truth_states": [
+    "VERIFIED",
+    "OBSERVED",
+    "BLOCKED",
+    "FAILED",
+    "UNKNOWN",
+    "CONNECTED_NOT_VERIFIED",
+    "REQUIRES_CONFIGURATION",
+    "MISSING_CONNECTOR",
+    "UNAVAILABLE",
+    "STALE",
+    "REVIEW"
+  ],
   "registration_rule": "Registration never implies connection, testing, or verification.",
   "credential_rule": "Store only secure credential references. Never store raw secrets in the registry, source code, logs, prompts, UI, URLs, screenshots, or Git.",
   "provider_rules": {
-    "lovable": {"category":"builder","modes":["web"],"verification":"Requires a currently supported, independently verified connector or API path. Never assume an endpoint from source code alone."},
-    "manus": {"category":"autonomous-agent","modes":["api","web"],"capabilities":["goal_execution","web_research","browser_automation","multi_step_task_execution"],"verification":"verify_connection must execute a real supported health/auth/capability probe. Adapter registration never produces VERIFIED."},
-    "base44": {"category":"codec","modes":["local"],"capabilities":["ENCODE","DECODE"],"security_rule":"Encoding is not hashing, encryption, authentication, or credential protection."}
+    "lovable": {
+      "category": "builder",
+      "modes": [
+        "web"
+      ],
+      "verification": "Requires a currently supported, independently verified connector or API path. Never assume an endpoint from source code alone."
+    },
+    "manus": {
+      "category": "autonomous-agent",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "capabilities": [
+        "goal_execution",
+        "web_research",
+        "browser_automation",
+        "multi_step_task_execution"
+      ],
+      "verification": "verify_connection must execute a real supported health/auth/capability probe. Adapter registration never produces VERIFIED."
+    },
+    "base44": {
+      "category": "codec",
+      "modes": [
+        "local"
+      ],
+      "capabilities": [
+        "ENCODE",
+        "DECODE"
+      ],
+      "security_rule": "Encoding is not hashing, encryption, authentication, or credential protection."
+    }
   },
   "capability_registry": {
     "principle": "Capabilities are first-class APEX primitives. Providers implement capabilities through replaceable adapters.",
-    "operation_modes": ["CREATE","EDIT","ANALYZE","TRANSFORM","GENERATE","VERIFY"],
+    "operation_modes": [
+      "CREATE",
+      "EDIT",
+      "ANALYZE",
+      "TRANSFORM",
+      "GENERATE",
+      "VERIFY"
+    ],
     "capabilities": {
-      "IMAGE_GENERATION": {"family":"visual","operation_modes":["CREATE","GENERATE"],"verification":"Provider response plus technical/visual validation; important embedded text requires text extraction and comparison."},
-      "IMAGE_EDITING": {"family":"visual","operation_modes":["EDIT","TRANSFORM"],"verification":"Source asset must be explicit; preserve-list and requested mutations are compared against the result."},
-      "IMAGE_TEXT_RENDERING": {"family":"visual","operation_modes":["CREATE","EDIT","VERIFY"],"verification":"OCR/text extraction compares spelling, accents, numbers, labels, names, language, and requested text before VERIFIED."},
-      "IMAGE_ANALYSIS": {"family":"visual","operation_modes":["ANALYZE"],"verification":"Observations remain evidence-bound; analysis cannot manufacture verification."},
-      "IMAGE_TO_VIDEO": {"family":"video","operation_modes":["TRANSFORM","GENERATE"],"verification":"Validate duration, dimensions, codec/container, playback, and requested motion/scene constraints."},
-      "VIDEO_GENERATION": {"family":"video","operation_modes":["CREATE","GENERATE"],"verification":"Validate technical media requirements and requested scene/motion behavior."},
-      "VIDEO_ANALYSIS": {"family":"video","operation_modes":["ANALYZE"],"verification":"Extract observable scenes, UI states, interactions, timing, motion, audio, and assets with provenance."},
-      "TTS": {"family":"voice","operation_modes":["GENERATE"],"verification":"Validate generated audio, language, duration, and requested delivery characteristics."},
-      "VOICE_STYLE": {"family":"voice","operation_modes":["GENERATE","TRANSFORM"],"verification":"Compare requested language/style/emotion/delivery attributes against the generated result; do not infer identity."},
-      "VOICE_CLONING": {"family":"voice","operation_modes":["TRANSFORM","GENERATE"],"verification":"Requires explicit authorization and provider-specific identity/consent controls before execution."},
-      "3D_GENERATION": {"family":"3d","operation_modes":["CREATE","GENERATE"],"verification":"Validate asset format, geometry/scene integrity, scale where specified, materials, and provenance."},
-      "3D_INTERACTIVE_EXPERIENCE": {"family":"3d","operation_modes":["CREATE","EDIT","GENERATE"],"verification":"Validate runtime loading, interaction states, camera/input behavior, performance constraints, and visual requirements."}
+      "IMAGE_GENERATION": {
+        "family": "visual",
+        "operation_modes": [
+          "CREATE",
+          "GENERATE"
+        ],
+        "verification": "Provider response plus technical/visual validation; important embedded text requires text extraction and comparison."
+      },
+      "IMAGE_EDITING": {
+        "family": "visual",
+        "operation_modes": [
+          "EDIT",
+          "TRANSFORM"
+        ],
+        "verification": "Source asset must be explicit; preserve-list and requested mutations are compared against the result."
+      },
+      "IMAGE_TEXT_RENDERING": {
+        "family": "visual",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "VERIFY"
+        ],
+        "verification": "OCR/text extraction compares spelling, accents, numbers, labels, names, language, and requested text before VERIFIED."
+      },
+      "IMAGE_ANALYSIS": {
+        "family": "visual",
+        "operation_modes": [
+          "ANALYZE"
+        ],
+        "verification": "Observations remain evidence-bound; analysis cannot manufacture verification."
+      },
+      "IMAGE_TO_VIDEO": {
+        "family": "video",
+        "operation_modes": [
+          "TRANSFORM",
+          "GENERATE"
+        ],
+        "verification": "Validate duration, dimensions, codec/container, playback, and requested motion/scene constraints."
+      },
+      "VIDEO_GENERATION": {
+        "family": "video",
+        "operation_modes": [
+          "CREATE",
+          "GENERATE"
+        ],
+        "verification": "Validate technical media requirements and requested scene/motion behavior."
+      },
+      "VIDEO_ANALYSIS": {
+        "family": "video",
+        "operation_modes": [
+          "ANALYZE"
+        ],
+        "verification": "Extract observable scenes, UI states, interactions, timing, motion, audio, and assets with provenance."
+      },
+      "TTS": {
+        "family": "voice",
+        "operation_modes": [
+          "GENERATE"
+        ],
+        "verification": "Validate generated audio, language, duration, and requested delivery characteristics."
+      },
+      "VOICE_STYLE": {
+        "family": "voice",
+        "operation_modes": [
+          "GENERATE",
+          "TRANSFORM"
+        ],
+        "verification": "Compare requested language/style/emotion/delivery attributes against the generated result; do not infer identity."
+      },
+      "VOICE_CLONING": {
+        "family": "voice",
+        "operation_modes": [
+          "TRANSFORM",
+          "GENERATE"
+        ],
+        "verification": "Requires explicit authorization and provider-specific identity/consent controls before execution."
+      },
+      "3D_GENERATION": {
+        "family": "3d",
+        "operation_modes": [
+          "CREATE",
+          "GENERATE"
+        ],
+        "verification": "Validate asset format, geometry/scene integrity, scale where specified, materials, and provenance."
+      },
+      "3D_INTERACTIVE_EXPERIENCE": {
+        "family": "3d",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE"
+        ],
+        "verification": "Validate runtime loading, interaction states, camera/input behavior, performance constraints, and visual requirements."
+      },
+      "GENERAL_REASONING_AGENT": {
+        "family": "agent",
+        "operation_modes": [
+          "ANALYZE",
+          "GENERATE",
+          "TRANSFORM"
+        ],
+        "verification": "Agent actions require observable execution evidence, tool authorization, read-back, and deterministic verification."
+      },
+      "APP_FULL_STACK": {
+        "family": "application",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "VERIFY"
+        ],
+        "verification": "Track interface, backend, database, authentication/user access, runtime execution, and end-to-end read-back as separate evidence surfaces."
+      },
+      "CREDIT_ENTITLEMENT": {
+        "family": "commercial",
+        "operation_modes": [
+          "ANALYZE",
+          "VERIFY"
+        ],
+        "verification": "Credits, free tiers, promotions, quotas, and expiry are account/provider facts and remain UNVERIFIED until current evidence is observed."
+      }
     },
     "canonical_result": {
-      "required_fields": ["capability","provider","operation","status","output_ref","evidence_ref","timestamp"],
+      "required_fields": [
+        "capability",
+        "provider",
+        "operation",
+        "status",
+        "output_ref",
+        "evidence_ref",
+        "timestamp"
+      ],
       "truth_rule": "Adapter output is evidence; only the deterministic Comparator and Verify Gate may assign VERIFIED."
     }
   },
   "providers": [
-    {"id":"github","category":"source-control","modes":["api","web","cli","mcp"]},
-    {"id":"vercel","category":"deployment","modes":["api","web","cli"]},
-    {"id":"replit","category":"builder","modes":["api","web"]},
-    {"id":"google-cloud","category":"cloud","modes":["api","cli","web"]},
-    {"id":"aws","category":"cloud","modes":["api","cli","web"]},
-    {"id":"azure","category":"cloud","modes":["api","cli","web"]},
-    {"id":"digitalocean","category":"cloud","modes":["api","cli","web"]},
-    {"id":"openai","category":"ai","modes":["api"]},
-    {"id":"google-ai-studio","category":"ai","modes":["api","web"]},
-    {"id":"blender","category":"3d","modes":["local","cli","python"]},
-    {"id":"unreal","category":"3d","modes":["local","cli"]},
-    {"id":"tripo","category":"3d","modes":["api","web"]},
-    {"id":"flutter","category":"app-development","modes":["local","cli"]},
-    {"id":"lovable","category":"builder","modes":["web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"manus","category":"autonomous-agent","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"base44","category":"codec","modes":["local"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"bolt","category":"builder","modes":["web"]},
-    {"id":"lark","category":"work","modes":["api","web"]},
-    {"id":"meta","category":"social","modes":["api","web"]},
-    {"id":"supabase","category":"database","modes":["api","cli","web"]},
-    {"id":"firebase","category":"database","modes":["api","cli","web"]},
-    {"id":"cloudflare","category":"cloud","modes":["api","cli","web"]},
-    {"id":"shopify","category":"commerce","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"stripe","category":"payments","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"paypal","category":"payments","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"printify","category":"fulfillment","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"analytics","category":"analytics","modes":["api","web"],"provider_family":true,"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"crm","category":"crm","modes":["api","web"],"provider_family":true,"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"email","category":"email","modes":["api","web","smtp"],"provider_family":true,"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"fulfillment","category":"fulfillment","modes":["api","web"],"provider_family":true,"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"slack","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"microsoft-teams","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"outlook","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"sharepoint","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"onedrive","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"notion","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"linear","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"clickup","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"},
-    {"id":"atlassian","category":"work","modes":["api","web"],"initial_lifecycle_state":"DISCOVERED","initial_truth_state":"UNKNOWN"}
+    {
+      "id": "github",
+      "category": "source-control",
+      "modes": [
+        "api",
+        "web",
+        "cli",
+        "mcp"
+      ]
+    },
+    {
+      "id": "vercel",
+      "category": "deployment",
+      "modes": [
+        "api",
+        "web",
+        "cli"
+      ]
+    },
+    {
+      "id": "replit",
+      "category": "builder",
+      "modes": [
+        "api",
+        "web"
+      ]
+    },
+    {
+      "id": "google-cloud",
+      "category": "cloud",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "aws",
+      "category": "cloud",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "azure",
+      "category": "cloud",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "digitalocean",
+      "category": "cloud",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "openai",
+      "category": "ai",
+      "modes": [
+        "api"
+      ]
+    },
+    {
+      "id": "google-ai-studio",
+      "category": "ai",
+      "modes": [
+        "api",
+        "web"
+      ]
+    },
+    {
+      "id": "blender",
+      "category": "3d",
+      "modes": [
+        "local",
+        "cli",
+        "python"
+      ]
+    },
+    {
+      "id": "unreal",
+      "category": "3d",
+      "modes": [
+        "local",
+        "cli"
+      ]
+    },
+    {
+      "id": "tripo",
+      "category": "3d",
+      "modes": [
+        "api",
+        "web"
+      ]
+    },
+    {
+      "id": "flutter",
+      "category": "app-development",
+      "modes": [
+        "local",
+        "cli"
+      ]
+    },
+    {
+      "id": "lovable",
+      "category": "builder",
+      "modes": [
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "manus",
+      "category": "autonomous-agent",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "base44",
+      "category": "codec",
+      "modes": [
+        "local"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "bolt",
+      "category": "builder",
+      "modes": [
+        "web"
+      ]
+    },
+    {
+      "id": "lark",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ]
+    },
+    {
+      "id": "meta",
+      "category": "social",
+      "modes": [
+        "api",
+        "web"
+      ]
+    },
+    {
+      "id": "supabase",
+      "category": "database",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "firebase",
+      "category": "database",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "cloudflare",
+      "category": "cloud",
+      "modes": [
+        "api",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "shopify",
+      "category": "commerce",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "stripe",
+      "category": "payments",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "paypal",
+      "category": "payments",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "printify",
+      "category": "fulfillment",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "analytics",
+      "category": "analytics",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "provider_family": true,
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "crm",
+      "category": "crm",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "provider_family": true,
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "email",
+      "category": "email",
+      "modes": [
+        "api",
+        "web",
+        "smtp"
+      ],
+      "provider_family": true,
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "fulfillment",
+      "category": "fulfillment",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "provider_family": true,
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "slack",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "microsoft-teams",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "outlook",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "sharepoint",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "onedrive",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "notion",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "linear",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "clickup",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "atlassian",
+      "category": "work",
+      "modes": [
+        "api",
+        "web"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "gemini-cli",
+      "category": "ai-agent-runtime",
+      "modes": [
+        "local",
+        "cli"
+      ],
+      "license": "Apache-2.0",
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "wan",
+      "category": "video-generation",
+      "modes": [
+        "web",
+        "api"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    },
+    {
+      "id": "amd",
+      "category": "compute",
+      "modes": [
+        "cloud",
+        "gpu"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "UNKNOWN"
+    }
   ],
   "verification_contract": {
     "registration": "Creates a candidate provider manifest only.",
