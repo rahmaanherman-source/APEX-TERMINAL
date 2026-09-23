@@ -1,16 +1,38 @@
 {
-  "version": "2.1",
+  "version": "2.2",
   "principle": "APEX connects and verifies; it does not clone or replace the provider.",
   "truth_authority": "APEX Comparator and Verify Gate",
   "provider_source_of_truth": "Each external provider remains authoritative for its own underlying records.",
   "lifecycle_states": ["DISCOVERED","AVAILABLE","INSTALLED","CONFIGURED","CONNECTED","CAPABILITY_PROBED","TESTED","PRODUCTION_READY"],
-  "truth_states": ["VERIFIED","OBSERVED","BLOCKED","FAILED","UNKNOWN","CONNECTED_NOT_VERIFIED","REQUIRES_CONFIGURATION","MISSING_CONNECTOR","UNAVAILABLE","STALE"],
+  "truth_states": ["VERIFIED","OBSERVED","BLOCKED","FAILED","UNKNOWN","CONNECTED_NOT_VERIFIED","REQUIRES_CONFIGURATION","MISSING_CONNECTOR","UNAVAILABLE","STALE","REVIEW"],
   "registration_rule": "Registration never implies connection, testing, or verification.",
   "credential_rule": "Store only secure credential references. Never store raw secrets in the registry, source code, logs, prompts, UI, URLs, screenshots, or Git.",
   "provider_rules": {
     "lovable": {"category":"builder","modes":["web"],"verification":"Requires a currently supported, independently verified connector or API path. Never assume an endpoint from source code alone."},
     "manus": {"category":"autonomous-agent","modes":["api","web"],"capabilities":["goal_execution","web_research","browser_automation","multi_step_task_execution"],"verification":"verify_connection must execute a real supported health/auth/capability probe. Adapter registration never produces VERIFIED."},
     "base44": {"category":"codec","modes":["local"],"capabilities":["ENCODE","DECODE"],"security_rule":"Encoding is not hashing, encryption, authentication, or credential protection."}
+  },
+  "capability_registry": {
+    "principle": "Capabilities are first-class APEX primitives. Providers implement capabilities through replaceable adapters.",
+    "operation_modes": ["CREATE","EDIT","ANALYZE","TRANSFORM","GENERATE","VERIFY"],
+    "capabilities": {
+      "IMAGE_GENERATION": {"family":"visual","operation_modes":["CREATE","GENERATE"],"verification":"Provider response plus technical/visual validation; important embedded text requires text extraction and comparison."},
+      "IMAGE_EDITING": {"family":"visual","operation_modes":["EDIT","TRANSFORM"],"verification":"Source asset must be explicit; preserve-list and requested mutations are compared against the result."},
+      "IMAGE_TEXT_RENDERING": {"family":"visual","operation_modes":["CREATE","EDIT","VERIFY"],"verification":"OCR/text extraction compares spelling, accents, numbers, labels, names, language, and requested text before VERIFIED."},
+      "IMAGE_ANALYSIS": {"family":"visual","operation_modes":["ANALYZE"],"verification":"Observations remain evidence-bound; analysis cannot manufacture verification."},
+      "IMAGE_TO_VIDEO": {"family":"video","operation_modes":["TRANSFORM","GENERATE"],"verification":"Validate duration, dimensions, codec/container, playback, and requested motion/scene constraints."},
+      "VIDEO_GENERATION": {"family":"video","operation_modes":["CREATE","GENERATE"],"verification":"Validate technical media requirements and requested scene/motion behavior."},
+      "VIDEO_ANALYSIS": {"family":"video","operation_modes":["ANALYZE"],"verification":"Extract observable scenes, UI states, interactions, timing, motion, audio, and assets with provenance."},
+      "TTS": {"family":"voice","operation_modes":["GENERATE"],"verification":"Validate generated audio, language, duration, and requested delivery characteristics."},
+      "VOICE_STYLE": {"family":"voice","operation_modes":["GENERATE","TRANSFORM"],"verification":"Compare requested language/style/emotion/delivery attributes against the generated result; do not infer identity."},
+      "VOICE_CLONING": {"family":"voice","operation_modes":["TRANSFORM","GENERATE"],"verification":"Requires explicit authorization and provider-specific identity/consent controls before execution."},
+      "3D_GENERATION": {"family":"3d","operation_modes":["CREATE","GENERATE"],"verification":"Validate asset format, geometry/scene integrity, scale where specified, materials, and provenance."},
+      "3D_INTERACTIVE_EXPERIENCE": {"family":"3d","operation_modes":["CREATE","EDIT","GENERATE"],"verification":"Validate runtime loading, interaction states, camera/input behavior, performance constraints, and visual requirements."}
+    },
+    "canonical_result": {
+      "required_fields": ["capability","provider","operation","status","output_ref","evidence_ref","timestamp"],
+      "truth_rule": "Adapter output is evidence; only the deterministic Comparator and Verify Gate may assign VERIFIED."
+    }
   },
   "providers": [
     {"id":"github","category":"source-control","modes":["api","web","cli","mcp"]},
