@@ -260,6 +260,34 @@
           "VERIFY"
         ],
         "verification": "Validate reusable typography, color, imagery, motion, component, and asset rules against the project brief."
+      },
+      "AUTONOMOUS_WORKFLOW_EXECUTION": {
+        "family": "agent",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "GENERATE",
+          "VERIFY"
+        ],
+        "verification": "Workflow steps, tool calls, outputs, side effects, retries, and terminal state must be observable; no inferred completion."
+      },
+      "AGENT_TO_AGENT_DELEGATION": {
+        "family": "agent",
+        "operation_modes": [
+          "GENERATE",
+          "TRANSFORM",
+          "VERIFY"
+        ],
+        "verification": "Delegated task identity, skill, progress, result, and retrieval evidence must be recorded."
+      },
+      "SCHEDULED_AUTOMATION": {
+        "family": "automation",
+        "operation_modes": [
+          "CREATE",
+          "EDIT",
+          "VERIFY"
+        ],
+        "verification": "Schedule registration, execution record, result, and failure state must be observable."
       }
     },
     "canonical_result": {
@@ -745,6 +773,34 @@
       "initial_lifecycle_state": "DISCOVERED",
       "initial_truth_state": "REVIEW",
       "notes": "DeepSeek's current API docs identify deepseek-flash as V4.1-Flash. Do not hard-code older V4 Flash aliases as the current model."
+    },
+    {
+      "id": "rockbot",
+      "category": "autonomous-agent-framework",
+      "modes": [
+        "local",
+        "docker",
+        "api"
+      ],
+      "capabilities": [
+        "AUTONOMOUS_WORKFLOW_EXECUTION",
+        "AGENT_TO_AGENT_DELEGATION",
+        "SCHEDULED_AUTOMATION",
+        "GENERAL_REASONING_AGENT"
+      ],
+      "license": "MIT",
+      "architecture": [
+        "message-bus",
+        "isolated-processes",
+        "mcp",
+        "a2a",
+        "subagents",
+        "working-memory"
+      ],
+      "initial_lifecycle_state": "DISCOVERED",
+      "initial_truth_state": "OBSERVED",
+      "evidence": "https://rockbot.dev/",
+      "notes": "RockBot is a framework, not a hosted capability guarantee. APEX must treat its tools, models, agents, and integrations as separately configured and verified."
     }
   ],
   "verification_contract": {
