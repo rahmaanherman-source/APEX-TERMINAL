@@ -77,7 +77,7 @@ Example:
 
 ## 6. Integrations
 
-Sintra currently documents 1,000+ integrations powered by Composio.
+Sintra currently documents 1,000+ integrations powered by Composio. Current official documentation lists Gmail, Outlook, Google Calendar, Google Drive, Dropbox, LinkedIn, Facebook, Instagram, TikTok, YouTube, Shopify, GitHub, Google Analytics, QuickBooks, Slack, Notion and many others.
 
 Important APEX candidates include:
 - Gmail
@@ -110,6 +110,16 @@ Important APEX candidates include:
 - Microsoft services
 
 **Rule:** inventory what is actually available in the user's Sintra account before declaring an integration connected or operational.
+
+### 2026-09-24 verification note
+
+Official Sintra documentation confirms the advertised integration surface, but this review did **not** have direct access to the user's Sintra workspace connection state. Therefore no connector is marked CONNECTED or VERIFIED from this review alone.
+
+Additional capability boundary verified from current official documentation:
+- Shopify integration supports 29 store actions across products, orders, shipping, customers, inventory, discounts and store information.
+- Commet owns Shopify execution; Penn can pair for product copy.
+- Shopify custom workflows/scheduled tasks are currently documented as unsupported inside the Shopify integration.
+- Soshie's current helper documentation explicitly lists direct social publishing for Facebook Pages, Instagram Business/Creator Accounts, and LinkedIn personal/organization accounts. Do not infer TikTok or YouTube publishing through Soshie merely because those integrations exist in the broader Sintra connector catalog.
 
 ## 7. Automations
 
@@ -249,20 +259,28 @@ Therefore:
 - If APEX needs an external API/orchestration path, keep that layer outside Sintra.
 - Treat Sintra as a replaceable execution/workforce provider.
 
-## 19. APEX execution model
+## 19. Morning delegation plan
 
-COMMAND
-→ APEX TERMINAL
-→ GABBY
-→ ROUTE TO BEST EXECUTION PROVIDER
-→ SINTRA HELPER / CONNECTED APP / OTHER TOOL
-→ VALIDATE
-→ RETURN RESULT
-→ STORE CANONICAL RESULT IN APEX
+Prioritize work that removes owner touch-time while preserving APEX approval boundaries.
 
-Sintra is a worker, not the sovereign source of truth.
+| Priority | Delegate | Sintra helper/capability | Access needed | Expected result | APEX/Gabby control |
+|---|---|---|---|---|---|
+| P0 | Shopify morning operations: orders, product/listing cleanup, inventory, discount review | Commet + Shopify; Penn for copy | Shopify connection with required scopes | Morning store brief + prepared changes | Approve consequential pricing, discounts, refunds, destructive changes |
+| P0 | Social content batch for the day | Soshie + Facebook/Instagram/LinkedIn | Connected social accounts + Brain AI brand context | Platform-specific drafts/schedule queue | APEX/Gabby owns approval, claims, offers, paid publication |
+| P0 | Revenue/sales follow-up queue | Milli | CRM/sales integration if used | Prioritized leads and follow-up drafts | APEX approves commitments, pricing, contracts and sensitive outreach |
+| P1 | Inbox triage and customer-response drafts | Cassie / Emmie | Gmail or Outlook connection | Urgent-vs-routine inbox summary + drafts | APEX approves sensitive, legal, financial or escalated replies |
+| P1 | Daily KPI/reporting pull | Dexter | Google Analytics/Sheets or other approved analytics connection | Concise morning performance report | APEX owns canonical metrics and business decisions |
+| P1 | SEO/content refresh candidates | Seomi + Penn | Website/CMS or source content access | Prioritized page/product/content fixes and copy | APEX owns canonical positioning and final publishing |
+| P1 | Executive admin | Vizzy | Calendar/email/task integrations as needed | Calendar, priorities and action queue cleaned up | APEX retains scheduling decisions involving high-value commitments |
+| P2 | Market/competitor/trend research | Buddy / Seomi / Dexter | Search/research context and approved data sources | Short evidence-backed opportunity brief | APEX validates consequential claims and strategy |
+| P2 | Meeting notes and action extraction | Meeting Notetaker | Authorized meeting/calendar connection | Decisions, owners and next actions | APEX confirms commitments and canonical records |
+| P2 | Recruiting/admin | Scouty | Approved recruiting inputs | Candidate/job workflow support | Human/APEX approval for consequential employment decisions |
 
-## 20. Tomorrow's Sintra field test
+### Owner-time rule
+
+Sintra should prepare, summarize, draft, classify and queue. APEX/Gabby should authorize high-impact actions, canonical truth, financial actions, secrets, destructive operations, brand-critical claims and production deployment.
+
+## 20. Field-test gate
 
 Run the inventory against the actual paid Sintra workspace and mark every capability:
 
@@ -273,6 +291,8 @@ Run the inventory against the actual paid Sintra workspace and mark every capabi
 [ ] Produces expected output
 [ ] Safe for production
 [ ] APEX route documented
+
+For this morning review, **AVAILABLE** means supported by current official Sintra documentation. **CONNECTED/VERIFIED** requires an actual successful test in the user's workspace and must not be inferred from documentation.
 
 Test every built-in helper, Team Chat, Brain AI, integrations, automations, recurring tasks, website builder, marketplace/custom-helper path, image generation/editing, meeting notes, and relevant helper use-cases.
 
@@ -307,3 +327,13 @@ APEX Terminal commands.
 Connected providers are replaceable.
 
 No provider becomes a permanent architectural owner merely because it is convenient today.
+
+## 23. Current morning review conclusion — 2026-09-24
+
+**Best immediate delegation targets:** Shopify operations, social drafting/scheduling, inbox triage, sales follow-up preparation, KPI reporting, SEO/content cleanup, and executive admin.
+
+**Verified capability from current documentation:** Shopify's Sintra integration advertises 29 store actions; Soshie is the dedicated social helper with documented direct publishing for Facebook, Instagram and LinkedIn; Sintra supports recurring tasks and broad integrations.
+
+**Not verified from this review:** the user's actual connector authentication/permissions, any live Sintra-to-APEX runtime bridge, any specific social account connection, and any production automation currently enabled in the user's workspace.
+
+**Known limitations:** no public Sintra API; complex multi-step chained automations are not a supported native primitive; Shopify custom scheduled workflows are currently documented as unavailable; Soshie's current direct-publishing documentation should be treated as narrower than the broader connector catalog.
