@@ -29,6 +29,24 @@ To fix: <direct link> → <step 1> → <step 2>
 Tell me "done" when it's authorized, and I'll pick it right back up.
 ```
 
+## Pending saves count too
+
+Anything that is waiting on Mac to **save, approve or confirm** is treated exactly like a blocked connection: a skill card, a memory entry, a setting, a "Save" or "Publish" button, a pull request to merge, an authorization screen.
+
+If it isn't saved, it doesn't take effect, and Mac has no way to tell that it didn't. So:
+
+- Say it plainly right away: **"PENDING SAVE: <item>. It won't take effect until you save it."** plus the link or where the button is.
+- Remind him again at the top of the next reply until it's saved or he says to drop it.
+- Never describe an unsaved item as active, saved or in place.
+
+Template:
+
+```
+PENDING SAVE: <item>
+Until it's saved: <what won't happen>
+To save: <link or where the button is>
+```
+
 ## If Mac skips past it
 
 He's moving fast and may not see it. If he keeps going without authorizing:
