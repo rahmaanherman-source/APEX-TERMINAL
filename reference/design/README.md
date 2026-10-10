@@ -21,23 +21,23 @@
 
 ---
 
-## House style: one look everywhere
+## Colour: palettes, not one house colour
 
-**The Executive Office image (`apex-executive-office.png`) sets the look for every APEX surface,** including the Global Market and the 360 Atelier. Mac designed the layouts; this black-and-gold treatment is the approved finish.
+**APEX is a global brand. No surface is locked to one colour scheme** (Mac, 2026-10-10: "We are universal global company… we in our own lane").
 
-- **Colors:** true black and charcoal backgrounds; **warm metallic gold** for buttons, active states, icons and borders; soft white and warm gray text. No neon, no electric blue or purple glows, no rainbow gradients, no "cyberpunk" look.
-- **Type:** an elegant serif for big headlines; a clean, light sans-serif for everything else; gold small caps with wide letter spacing for labels.
-- **Surfaces:** dark glass panels with a thin gold hairline border and a soft inner glow. Rounded corners, never bubbly.
-- **Imagery:** real photography, warm cinematic light, deep shadows.
-- **Feel:** a luxury brand's private office. Calm, expensive, confident.
+- Every APEX surface ships a **palette picker** with full, pre-matched palettes (background, accent, second accent, two glow colours), the way Google Stitch offers palettes.
+- Standard set: **Midnight Gold, Ocean Glass, Sunset Coral, Royal Violet, Emerald Lux, Rose Pearl, Electric Citrus.** Reference implementation: `apex-360` → `src/palettes.css` + `src/lib/palette.ts`.
+- All colours are tokens (`--h-bg`, `--h-accent`, …). Never hard-code a brand colour into a component.
+- Social and partner buttons keep their own real brand colours.
+- What stays fixed in every palette: **type** (elegant serif headlines, clean light sans for UI, wide-tracked small caps for labels), **dark-glass panels with a thin accent hairline**, real photography, and calm spacing. High-end, never cluttered.
 
-The Global Market and 360 Atelier images are **layout** references only. Keep their structure, and apply this house style instead of their blue and purple colors.
+The reference images are **layout** references. Keep their structure; the colour comes from the chosen palette.
 
 ---
 
 ## 1. APEX Executive Office — `apex-executive-office.png`
 
-**Palette:** black, warm gold, soft white. Serif display headline, clean sans for UI.
+**Palette:** any APEX palette (the image shows Midnight Gold). Serif display headline, clean sans for UI.
 **Hero:** Gabby, Chief of Staff, beside the "APEX Cognitive Intelligence" headline and the gold APEX orb.
 
 Top to bottom:
@@ -54,7 +54,7 @@ Top to bottom:
 
 ## 2. APEX Global Market — `apex-global-market.png`
 
-**Palette:** house style (black and gold). The blue/violet in the image is not approved.
+**Palette:** any APEX palette.
 **Hero:** the glowing globe with products orbiting it, "Global Brands. Real Deals. Bigger Possibilities."
 
 Top to bottom:
@@ -73,7 +73,7 @@ Top to bottom:
 
 ## 3. APEX 360 Atelier — `apex-360-atelier.png`
 
-**Palette:** house style (black and gold). The blue glow in the image is not approved.
+**Palette:** any APEX palette.
 **Hero:** the **live camera / preview frame**, the largest element, never covered.
 
 Desktop grid:
