@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "spec_version": "1.0.0",
+  "title": "APEX Character Multi-Angle Reference Specification",
+  "status": "documented_reference_contract_not_automated",
+  "subject_id": "mac",
+  "identity_lock": {
+    "one_subject_across_all_views": true,
+    "preserve": [
+      "head_and_facial_structure",
+      "skin_tone",
+      "eyes_and_brows",
+      "nose",
+      "lips",
+      "ears",
+      "jaw",
+      "hairline_and_hairstyle",
+      "facial_hair",
+      "body_proportions_when_visible",
+      "approved_distinctive_features"
+    ],
+    "conflicts_must_be_flagged": true,
+    "generated_views_must_not_be_labeled_as_real_photographs": true
+  },
+  "coordinate_convention": {
+    "yaw_degrees": "0=front; negative=subject turns to their left; positive=subject turns to their right; +/-90=profile; 180=back",
+    "pitch_degrees": "0=level; negative=looking down; positive=looking up",
+    "roll_degrees": "0=level; positive=clockwise tilt from viewer perspective",
+    "note": "Confirm the target tool's axis convention and convert if it differs."
+  },
+  "angle_slots": [
+    {
+      "id": "front",
+      "label": "Front",
+      "yaw_deg": 0,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "required": true,
+      "status": "reference_required"
+    },
+    {
+      "id": "left_three_quarter",
+      "label": "Left three-quarter",
+      "yaw_deg": -45,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "required": true,
+      "status": "reference_required"
+    },
+    {
+      "id": "right_three_quarter",
+      "label": "Right three-quarter",
+      "yaw_deg": 45,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "required": true,
+      "status": "reference_required"
+    },
+    {
+      "id": "left_profile",
+      "label": "Left profile",
+      "yaw_deg": -90,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "required": true,
+      "status": "reference_required"
+    },
+    {
+      "id": "right_profile",
+      "label": "Right profile",
+      "yaw_deg": 90,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "required": true,
+      "status": "reference_required"
+    },
+    {
+      "id": "rear",
+      "label": "Back of head",
+      "yaw_deg": 180,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "required": true,
+      "status": "missing_until_supplied"
+    },
+    {
+      "id": "looking_down",
+      "label": "Looking down",
+      "yaw_deg": 0,
+      "pitch_deg": -20,
+      "roll_deg": 0,
+      "required": false,
+      "status": "supplemental"
+    },
+    {
+      "id": "looking_up",
+      "label": "Looking up",
+      "yaw_deg": 0,
+      "pitch_deg": 20,
+      "roll_deg": 0,
+      "required": false,
+      "status": "supplemental"
+    }
+  ],
+  "grid": {
+    "type": "3x3",
+    "purpose": "Reference and inspection layout only; do not assume every downstream model accepts a collage.",
+    "cells": [
+      {
+        "row": 1,
+        "col": 1,
+        "id": "left_three_quarter",
+        "yaw_deg": -45,
+        "pitch_deg": 0
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "id": "looking_down",
+        "yaw_deg": 0,
+        "pitch_deg": -20
+      },
+      {
+        "row": 1,
+        "col": 3,
+        "id": "right_three_quarter",
+        "yaw_deg": 45,
+        "pitch_deg": 0
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "id": "left_profile",
+        "yaw_deg": -90,
+        "pitch_deg": 0
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "id": "front",
+        "yaw_deg": 0,
+        "pitch_deg": 0
+      },
+      {
+        "row": 2,
+        "col": 3,
+        "id": "right_profile",
+        "yaw_deg": 90,
+        "pitch_deg": 0
+      },
+      {
+        "row": 3,
+        "col": 1,
+        "id": "rear",
+        "yaw_deg": 180,
+        "pitch_deg": 0
+      },
+      {
+        "row": 3,
+        "col": 2,
+        "id": "looking_up",
+        "yaw_deg": 0,
+        "pitch_deg": 20
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "id": "reserved_supplemental",
+        "yaw_deg": null,
+        "pitch_deg": null
+      }
+    ],
+    "landmarks": [
+      {
+        "id": "left_eye_center",
+        "region": "eye",
+        "normalized_coordinates": [
+          0,
+          1
+        ],
+        "note": "Record location in each crop; actual x/y must be measured per image."
+      },
+      {
+        "id": "right_eye_center",
+        "region": "eye",
+        "normalized_coordinates": [
+          1,
+          1
+        ],
+        "note": "Record location in each crop; actual x/y must be measured per image."
+      },
+      {
+        "id": "nose_tip",
+        "region": "nose",
+        "normalized_coordinates": [
+          0.5,
+          0.5
+        ],
+        "note": "Illustrative semantic anchor, not a hard-coded pixel coordinate."
+      },
+      {
+        "id": "chin_bottom",
+        "region": "chin",
+        "normalized_coordinates": [
+          0.5,
+          1
+        ],
+        "note": "Illustrative semantic anchor, not a hard-coded pixel coordinate."
+      }
+    ],
+    "landmark_coordinate_warning": "The normalized_coordinates above describe rough semantic anchors in an abstract crop, not measured landmarks for the subject. Implementations must detect or annotate actual coordinates."
+  },
+  "asset_naming": {
+    "pattern": "mac_{angle_id}.{ext}",
+    "examples": [
+      "mac_front.jpg",
+      "mac_left_three_quarter.jpg",
+      "mac_right_profile.jpg",
+      "mac_rear.jpg"
+    ]
+  },
+  "routing": {
+    "single_image_talking_avatar_or_lip_sync": {
+      "input": "One clean, front-facing portrait or the tool-required source video.",
+      "do_not_send": "A multi-view collage unless the vendor explicitly supports it."
+    },
+    "image_to_video": {
+      "input": "Only the supported number and type of reference images for the chosen tool."
+    },
+    "3d_modeling_or_camera_projection": {
+      "input": "Individual labeled views plus this angle metadata; confirm axis conventions before mapping cameras."
+    },
+    "review": {
+      "input": "Turnaround sheet plus individual crops and genuine source photographs, when consented and available."
+    }
+  },
+  "provenance": {
+    "private_reference_photos_public_repo_approval_required": true,
+    "consent_required": true,
+    "actual_photo_sheet_committed": false,
+    "automatic_3d_mapping_implemented": false
+  }
+}
