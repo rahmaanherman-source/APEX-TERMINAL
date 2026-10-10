@@ -7,3 +7,7 @@ __pycache__/
 *.py[cod]
 node_modules/
 .DS_Store
+
+.apex/run/
+.apex/telemetry/
+.venv/

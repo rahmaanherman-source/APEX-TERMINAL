@@ -11,6 +11,8 @@ import logging
 import os
 import signal
 import subprocess
+from pathlib import Path
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -22,6 +24,9 @@ from guardrails.breaker_box import BreakerBox
 from guardrails.telemetry import Telemetry
 
 logger = logging.getLogger(__name__)
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 
 class SidecarStatus(str, Enum):
@@ -52,6 +57,7 @@ class Sidecar:
     last_health_check: float = 0.0
     last_error: Optional[str] = None
     pid: Optional[int] = None
+    healthy_streak: int = 0
 
 
 class MasterRouter:
@@ -59,18 +65,29 @@ class MasterRouter:
         self.sidecars: dict[str, Sidecar] = {}
         self.telemetry = telemetry
         self.breaker_box = breaker_box
+        self.stable_checks = 3
 
     async def start_sidecar(self, config: SidecarConfig) -> Sidecar:
-        if config.name in self.sidecars:
+        previous = self.sidecars.get(config.name)
+        if previous:
             await self.stop_sidecar(config.name)
         sidecar = Sidecar(config=config, status=SidecarStatus.STARTING)
+        # Keep the restart history across restarts, or a crash-looping sidecar
+        # would never reach quarantine.
+        sidecar.restart_count = previous.restart_count if previous else 0
         self.sidecars[config.name] = sidecar
         env = os.environ.copy()
         env.update(config.env)
         env.setdefault("PORT", str(config.port))
+        command = list(config.command)
+        # "python" in a config means "the interpreter running APEX", so a
+        # sidecar always gets the same virtualenv and installed packages.
+        if command and command[0] in {"python", "python3"}:
+            command[0] = sys.executable
         try:
             sidecar.process = subprocess.Popen(
-                list(config.command),
+                command,
+                cwd=str(PROJECT_ROOT),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True,
@@ -86,7 +103,6 @@ class MasterRouter:
             while time.monotonic() < deadline:
                 if await self.health_check(config.name):
                     sidecar.status = SidecarStatus.HEALTHY
-                    sidecar.restart_count = 0
                     self._event(config.name, "health_ok", pid=sidecar.pid)
                     return sidecar
                 await asyncio.sleep(0.05)
@@ -205,10 +221,17 @@ class MasterRouter:
         for name, sidecar in list(self.sidecars.items()):
             if sidecar.status in {SidecarStatus.STOPPED, SidecarStatus.QUARANTINED}:
                 continue
-            if not await self.health_check(name):
-                sidecar.status = SidecarStatus.UNHEALTHY
-                self._event(name, "health_failed", error=sidecar.last_error)
-                await self.restart_sidecar(name)
+            if await self.health_check(name):
+                sidecar.healthy_streak += 1
+                # Forgive past restarts only after the sidecar proves stable.
+                if sidecar.restart_count and sidecar.healthy_streak >= self.stable_checks:
+                    sidecar.restart_count = 0
+                    self._event(name, "recovery_verified")
+                continue
+            sidecar.healthy_streak = 0
+            sidecar.status = SidecarStatus.UNHEALTHY
+            self._event(name, "health_failed", error=sidecar.last_error)
+            await self.restart_sidecar(name)
 
     def _event(self, module: str, event: str, **details: object) -> None:
         if self.telemetry:

@@ -61,6 +61,7 @@ def test_registry_separates_lifecycle_from_truth_state():
         "MISSING_CONNECTOR",
         "UNAVAILABLE",
         "STALE",
+        "REVIEW",
     ]
 
 

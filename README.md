@@ -42,20 +42,43 @@ Canonical lifecycle:
 
 The existing `apex_core.py` remains the APEX control-plane lifecycle authority. The bootstrap/router files provide the Gate 1–3 runtime surfaces without replacing the canonical control plane.
 
-### Bootstrap commands
+### Run it (5 minutes)
 
 ```bash
-pip install -r requirements-apex-core.txt
+# one-time setup
+python3 -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
+pip install -r requirements-apex-core.txt -r requirements-dev.txt
+
+# Gate 1: check a file before it ever runs
 python apex_bootstrap.py validate examples/sidecar_a.py
-python apex_bootstrap.py start --config config/apex-sidecars.json
-python apex_bootstrap.py monitor
+
+# Terminal 1: start everything (stays in the foreground)
+python apex_bootstrap.py start
+
+# Terminal 2: operate it
+python apex_bootstrap.py status                     # live sidecar status
+python apex_bootstrap.py route sidecar_a "hello"    # send a test request
+python apex_bootstrap.py monitor                    # live view (Ctrl+C to exit)
+python apex_bootstrap.py stop                       # clean shutdown
 ```
+
+`start` refuses to run any sidecar whose source fails the Gate 1 guardrail. Sidecars live in `config/apex-sidecars.json`; `"python"` in a command means the same interpreter that runs APEX.
+
+What happens on failure:
+- A crashed sidecar is restarted with exponential backoff and must pass its readiness probe again.
+- After `max_restarts` failed recoveries it is **QUARANTINED** and stops receiving traffic.
+- A sidecar that stays healthy for 3 monitor checks earns back its restart budget.
+
+Runtime state is in `.apex/run/` and the evidence ledger in `.apex/telemetry/` (both git-ignored).
 
 ### Verification
 
 ```bash
-pytest -q tests/test_comparator.py tests/test_integration_registry.py tests/test_apex_core.py tests/test_bootstrap_lifecycle.py
+pytest -q tests
 ```
+
+`tests/test_zero_trust_e2e.py` starts real sidecars, kills them, checks recovery and quarantine, reads telemetry back from a second process, and drives the CLI (`start`, `status`, `route`, `stop`) end to end.
 
 A sidecar is only reported `HEALTHY` after its readiness probe passes. Runtime evidence is recorded under `.apex/telemetry/`. The lifecycle implementation deliberately avoids absolute claims such as “immune to crashes” or “zero security breaches”; resilience is measured by observed evidence and bounded failure behavior.
 

@@ -38,6 +38,32 @@ class Telemetry:
         self.events: list[Event] = []
         self.process_metrics: dict[str, dict[str, float]] = {}
         self._lock = Lock()
+        self.reload()
+
+    def reload(self, limit: int = 5000) -> None:
+        """Load recent evidence from disk so any process can read the ledger.
+
+        `status` and `monitor` run in a different process from `start`; without
+        this they would always show an empty system.
+        """
+        self.metrics = [Metric(**row) for row in self._read_tail(self._metrics_path, limit)]
+        self.events = [Event(**row) for row in self._read_tail(self._events_path, limit)]
+
+    @staticmethod
+    def _read_tail(path: Path, limit: int) -> list[dict[str, Any]]:
+        if not path.exists():
+            return []
+        rows: list[dict[str, Any]] = []
+        with path.open("r", encoding="utf-8") as handle:
+            for line in handle.readlines()[-limit:]:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue  # a half-written last line must not break the reader
+        return rows
 
     def record_metric(self, module_id: str, metric_type: str, value: float, **details: Any) -> Metric:
         metric = Metric(time.time(), module_id, metric_type, float(value), details)

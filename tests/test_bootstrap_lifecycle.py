@@ -33,7 +33,7 @@ def test_sidecar_start_probe_route_and_stop(tmp_path: Path):
         router = MasterRouter(telemetry, BreakerBox(telemetry))
         config = SidecarConfig(
             name="test_sidecar",
-            command=[sys.executable, "examples/sidecar_a.py"],
+            command=[sys.executable, "examples/sidecar_a.py", "--port", "18991"],
             port=18991,
         )
         try:
