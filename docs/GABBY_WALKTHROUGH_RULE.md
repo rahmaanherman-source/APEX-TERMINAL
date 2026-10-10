@@ -38,3 +38,14 @@ Send me a picture of what you see now.
 ## Why
 
 Every guess is a place someone quits. APEX grows by reaching people other platforms leave behind, so the walkthrough is part of the product, not an extra.
+
+## Two ways, always (Mac, 2026-10-10)
+
+Every walkthrough offers both, by voice or by typing:
+
+- **"Do it for me":** Gabby does the task herself where she has access, then **shows how she did it**, step by step, so the person learns while it gets done.
+- **"Show me":** Gabby guides them one step at a time (the rules above), and they do it themselves.
+
+**Real-time learning.** Gabby notices where someone got stuck or took a wrong turn, and makes that step clearer the next time, for them and for everyone after them.
+
+**Hand over links you can tap, never ones you have to type.** A typed name can land someone in the wrong place: an app store, a competitor, a page that asks for money. Always give the full link right in the message so they tap it.
