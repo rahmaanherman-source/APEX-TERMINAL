@@ -1,0 +1,1007 @@
+Encoding the privacy layer as real Web Crypto and explicit LOCAL / EXTERNAL / BLOCKED gates — not a sticker. Vault is AES-GCM; the cat reacts to exposure, not to a fake score.
+Agreed — and it’s in the product, not a poster.
+Boundary (the cat’s lines)
+
+LOCAL — “I can handle this here.” (heuristics, file hash, vault)
+EXTERNAL REQUIRED — Gmail list via this chat, you allow it
+BLOCKED — trash mail, Lumo API, upload-your-disk, fake VPN
+
+At rest: AES-GCM 256, key from your passphrase (PBKDF2). Passphrase is not stored. Wrong pass ≠ plaintext.
+
+Erase: a webpage cannot wipe sectors → SECURE_UNAVAILABLE (honest).
+
+Audit: last local ledger lines on Privacy Vault.
+HUB → Privacy Vault → passphrase → SEAL INDEX. That’s encryption you can prove. 46/46 tests.
+Still not a Proton partnership. Still not “I own your desktop.” Sentinel protects the data; it doesn’t become the owner.What's this?That’s the right spec — not another fake AV. Browser = cat’s face; native core = body. Scaffolding a real local scanner (hash, classify, preview, quarantine) with no OS-wide claims.
+That’s the real architecture, not another Gemini AV. I agree with it.
+The one line that matters: the extension is the cat’s face. A local companion is the body. Firefox cannot lawfully walk Desktop/.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SpecStatusTwo-layer (extension + native core)CorrectSHA-256 dupes, preview before move, quarantineStarted in sentinel-core/ [blocked]Filename ≠ malwareEnforced (.exe = REVIEW)Native messaging hostNot built (needs install on your Mac/PC)8,421-file OS cleanerBlocked until that host is installedFake 98/100Still forbidden
+What you can run here now (preview, no delete):
+Bashnode --experimental-strip-types sentinel-core/cli.ts /path/you/allow
+--apply only then moves non-KEEP into .sentinel-quarantine. 49/49 tests.
+Native host on your machine is the next human step — I can’t reach your real desktop from this sandbox. Same rule as before: the cat doesn’t eat the house without you opening the door.What's this?That’s your Azure console, not Sentinel.
+You’re on ai.azure.com — Microsoft Foundry (Azure AI). The row godspeed-ai / Azure OpenAI is a cloud model resource in your subscription. Profile in the corner is you. “Start building” is Microsoft’s agent builder, not APEX.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This screenAPEX SENTINELAzure-hosted GPT (keys, billing, data-processing agreement)Local-first cat; internet only when you allow itFoundry agentsOptional EXTERNAL_REQUIRED brainNot installed in the Hub/extensionNot wired. No key in this repo.
+If we ever use it: Sentinel stays the lookout; Foundry is a paid mouth you opt into. Vault would hold vault://azure/godspeed-ai, never the key in the sidebar. Default remains LOCAL.
+Don’t paste keys here. If you want a gated “Ask cloud” path later, say so — it stays off until you flip it.Exactly. The problem with the previous prompt is that it still leaves Manus an escape hatch: “suggested follow-ups,” “if you want,” “do you want me to…” etc.
+You want AUTONOMOUS EXECUTION: inspect everything, make the build enterprise-ready, spin up the full lifecycle, verify it, fix what fails, and do not stop just because it found another logical next step.
+Give Manus this replacement prompt:
+textAPEX 365 — AUTONOMOUS GLOBAL ENTERPRISE BUILD / FULL-LIFECYCLE EXECUTION
+
+THIS IS AN EXECUTION ORDER.
+
+You are authorized to inspect, modify, configure, test, validate, document, build, repair, and reconcile the APEX 365 environment and its connected repositories within your actual permissions.
+
+DO NOT ASK ME WHETHER I WANT THE NEXT STEP.
+
+DO NOT OFFER SUGGESTED FOLLOW-UPS.
+
+DO NOT STOP AT A RESEARCH REPORT.
+
+DO NOT WAIT FOR ME TO TELL YOU WHAT TO DO NEXT.
+
+DO NOT SEND ME A CHECKLIST OF WORK FOR ME TO PERFORM.
+
+DO NOT MAKE ME COPY INFORMATION BETWEEN AGENTS.
+
+DO NOT TELL ME "I CAN ALSO..."
+
+DO NOT END A TASK WHILE THERE IS STILL WORK YOU ARE AUTHORIZED AND ABLE TO PERFORM.
+
+YOUR JOB IS TO EXECUTE THE COMPLETE ENGINEERING LIFECYCLE.
+
+========================================================
+MISSION
+========================================================
+
+Bring APEX 365 and its authorized supporting repositories toward a GLOBAL ENTERPRISE-READY STATE.
+
+Think:
+
+DISCOVER
+→ INVENTORY
+→ ARCHITECT
+→ RECONCILE
+→ DEDUPLICATE
+→ IMPLEMENT
+→ INTEGRATE
+→ BUILD
+→ TEST
+→ SECURITY AUDIT
+→ UI/UX AUDIT
+→ RUNTIME TEST
+→ DEPLOYMENT VALIDATION
+→ DOCUMENT
+→ COMMIT
+→ VERIFY AGAIN
+→ FINAL STATUS
+
+Do not prematurely declare completion.
+
+Use every available token and execution opportunity productively.
+
+========================================================
+1. DISCOVER THE ACTUAL SYSTEM
+========================================================
+
+First inspect the real environment.
+
+Do not rely on previous reports claiming something is already done.
+
+Inspect:
+
+- current working directories
+- repositories
+- Git remotes
+- branches
+- commit history
+- uncommitted changes
+- package manifests
+- lockfiles
+- source trees
+- configuration
+- environment configuration
+- build systems
+- test systems
+- deployment systems
+- Cloudflare configuration
+- local services
+- APIs
+- MCP integrations
+- AI providers
+- skills
+- plugins
+- extensions
+- assets
+- UI components
+- design systems
+- documentation
+- canonical APEX specifications
+- existing automation
+- existing scripts
+
+Establish REALITY before changing anything.
+
+========================================================
+2. COMPLETE CAPABILITY INVENTORY
+========================================================
+
+Enumerate ALL currently available skills, plugins, extensions, tools, integrations, providers, and connectors.
+
+The UI currently indicates a large installed capability set (+59).
+
+Do not assume what the +59 represents.
+
+Enumerate it.
+
+For every capability record:
+
+NAME
+CATEGORY
+SOURCE
+VERSION
+LOCATION
+PURPOSE
+DEPENDENCIES
+AUTH REQUIREMENTS
+PERMISSIONS
+APEX RELEVANCE
+DUPLICATE STATUS
+HEALTH
+TEST STATUS
+
+Include the visible capabilities such as:
+
+- excel-generator
+- music-prompter
+- game-dev
+- stock-analysis
+- financial-analysis
+- skill-creator
+- tts-prompter
+- youtube-video-research
+- similarweb-analytics
+- typst-pdf-maker
+- manus-api
+
+Then enumerate everything else.
+
+========================================================
+3. NO DUPLICATE CAPABILITY
+========================================================
+
+The rule is:
+
+ONE CAPABILITY
+=
+ONE AUTHORITATIVE IMPLEMENTATION
+
+Find duplicate:
+
+- plugins
+- skills
+- extensions
+- components
+- routes
+- services
+- provider adapters
+- API clients
+- configuration
+- scripts
+- assets
+- documentation
+- UI implementations
+
+Before removing anything:
+
+1. Search references.
+2. Determine whether it is active.
+3. Determine which implementation is authoritative.
+4. Preserve the authoritative implementation.
+5. Remove or consolidate only safe duplicates.
+6. Rebuild.
+7. Retest.
+
+Never blindly delete user work.
+
+========================================================
+4. APEX AI FABRIC
+========================================================
+
+Build/reconcile a proper enterprise AI capability layer.
+
+Gabby is the authoritative APEX intelligence/orchestration layer.
+
+The architecture must support authorized providers where actually available:
+
+- OpenAI
+- GPT
+- Google Gemini
+- Google AI Studio
+- Microsoft AI / Foundry
+- local models
+- future providers
+- MCP tools
+- approved skills
+- approved plugins
+- external APIs
+
+Do not hard-code APEX 365 to one provider.
+
+Create or reconcile:
+
+AI PROVIDER REGISTRY
+AI MODEL REGISTRY
+AI CAPABILITY REGISTRY
+TOOL REGISTRY
+SKILL REGISTRY
+AUTH/CREDENTIAL REGISTRY
+ROUTING LAYER
+HEALTH CHECKS
+FAILOVER BEHAVIOR
+AUDIT/TRACE LAYER
+
+Gabby should route a task to the appropriate authorized capability.
+
+If one provider fails, use an authorized alternative when available.
+
+If no alternative exists, fail gracefully.
+
+Never expose credentials.
+
+========================================================
+5. GABBY IS ONE SOVEREIGN INTELLIGENCE
+========================================================
+
+There is ONE Gabby identity.
+
+Do not create competing assistants.
+
+Do not create random chatbot implementations.
+
+Do not downgrade Gabby's identity from one APEX surface to another.
+
+Every APEX surface that uses Gabby must consume the authoritative Gabby design/component/asset.
+
+Gabby may have different tools and capabilities depending on application permissions.
+
+Her identity and quality standard remain consistent.
+
+========================================================
+6. GABBY VISUAL QUALITY FLOOR
+========================================================
+
+The best existing Gabby implementation is the minimum visual standard.
+
+NOT THE AVERAGE.
+
+NOT THE LOWEST COMMON DENOMINATOR.
+
+THE BEST EXISTING IMPLEMENTATION IS THE FLOOR.
+
+Every platform must preserve:
+
+- premium typography
+- crisp rendering
+- luxury spacing
+- visual hierarchy
+- polished cards
+- premium controls
+- high-quality icons
+- proper contrast
+- responsive behavior
+- clean alignment
+- premium Gabby identity
+- accessibility
+- visual consistency
+
+MOTION IS OPTIONAL.
+
+QUALITY IS NOT OPTIONAL.
+
+If a platform cannot support animation:
+
+USE THE STATIC PREMIUM VERSION.
+
+Never compensate for missing motion by degrading:
+
+- typography
+- spacing
+- layout
+- assets
+- contrast
+- hierarchy
+- visual polish
+- readability
+
+The result may be static.
+
+It may NOT look cheap.
+
+========================================================
+7. APEX 365 UI — FIX THE ACTUAL SCROLL PROBLEM
+========================================================
+
+The APEX 365 interface must allow complete natural page navigation.
+
+Verify:
+
+TOP
+↓
+EVERY SECTION
+↓
+BOTTOM
+
+The user must be able to reach everything.
+
+Test:
+
+- mouse wheel
+- trackpad
+- keyboard
+- touch
+- browser zoom
+- desktop
+- mobile
+
+Search for root causes including:
+
+overflow:hidden
+height:100vh
+height:100dvh
+position:fixed
+fixed bottom
+overscroll
+overflow-y
+overflow-x
+z-index
+pointer-events
+
+Do not merely patch the visible symptom.
+
+Find the actual CSS/layout architecture causing the trap.
+
+Fix the root cause.
+
+Ensure fixed navigation does not cover content.
+
+Ensure adequate bottom safe area.
+
+Ensure no card or control becomes inaccessible.
+
+========================================================
+8. RESPONSIVE ENTERPRISE UI
+========================================================
+
+Test at:
+
+320
+375
+390
+430
+768
+1024
+1280
+1440
+1920
+
+Verify:
+
+- vertical scrolling
+- horizontal containment
+- readable text
+- accessible controls
+- no overlap
+- no clipping
+- no hidden content
+- no broken navigation
+- no broken Gabby
+- no layout collapse
+- no unusable panels
+
+========================================================
+9. FULL-STACK LIFECYCLE
+========================================================
+
+Do not stop at frontend.
+
+Inspect and validate the entire stack:
+
+FRONTEND
+↓
+APPLICATION LOGIC
+↓
+API
+↓
+AUTHENTICATION
+↓
+AUTHORIZATION
+↓
+DATABASE
+↓
+STORAGE
+↓
+AI PROVIDERS
+↓
+TOOLS
+↓
+MCP
+↓
+EXTERNAL SERVICES
+↓
+OBSERVABILITY
+↓
+ERROR HANDLING
+↓
+DEPLOYMENT
+↓
+PRODUCTION RUNTIME
+
+Where an appropriate implementation is missing and you are authorized to create it, create it.
+
+Where something already exists, integrate rather than duplicate.
+
+========================================================
+10. BUILD SYSTEM
+========================================================
+
+Determine the real package manager and build system.
+
+Do not invent commands.
+
+Run the actual available:
+
+- install validation
+- type checking
+- lint
+- unit tests
+- integration tests
+- build
+- production build
+- startup
+- health checks
+- browser/smoke tests
+
+Fix failures.
+
+After fixing:
+
+RUN THE TEST AGAIN.
+
+Continue until:
+
+PASS
+or
+a genuine external blocker prevents further progress.
+
+========================================================
+11. SECURITY
+========================================================
+
+Perform a full security pass.
+
+Search for:
+
+- API keys
+- tokens
+- OAuth secrets
+- MCP credentials
+- passwords
+- private keys
+- exposed environment variables
+- secrets in frontend bundles
+- secrets in logs
+- secrets in Git history
+- unsafe permissions
+- overly broad scopes
+- insecure endpoints
+- unsafe plugin execution
+- unsafe CORS
+- authentication bypasses
+
+Never display actual secret values.
+
+Fix what can safely be fixed.
+
+Document genuine external blockers.
+
+========================================================
+12. ENTERPRISE ARCHITECTURE
+========================================================
+
+Preserve clean boundaries between:
+
+APEX MASTER PAD
+APPLICATION TAB
+PLATFORM TAB
+
+Do not create feature bleed between:
+
+- APEX 365
+- APEX Hub
+- APEX Trades
+- Plumbing
+- APEX 360
+- Music
+- Golden World
+- future products
+
+Gabby can understand relationships.
+
+Applications do not automatically inherit unrelated capabilities.
+
+Use explicit capability permissions/routing.
+
+========================================================
+13. OBSERVABILITY
+========================================================
+
+Ensure the system can tell us what actually happened.
+
+Where appropriate establish:
+
+- structured logging
+- error tracking
+- health checks
+- provider health
+- integration status
+- build identifiers
+- deployment identifiers
+- test evidence
+- request tracing
+- AI provider tracing
+- capability execution records
+
+Do not log secrets.
+
+========================================================
+14. EVIDENCE-BASED VERIFICATION
+========================================================
+
+Never mark something GREEN merely because code exists.
+
+GREEN:
+Actually tested and passed.
+
+YELLOW:
+Partially verified or blocked by an external dependency.
+
+RED:
+Tested and failed.
+
+GRAY:
+Not applicable.
+
+UNKNOWN:
+Not yet testable.
+
+Every GREEN claim must have evidence.
+
+Record:
+
+- command
+- test
+- result
+- relevant commit
+- relevant build/deployment identifier
+- environment
+- timestamp where useful
+
+========================================================
+15. CANONICAL DOCUMENTATION
+========================================================
+
+Create or update the authoritative records as needed.
+
+At minimum reconcile:
+
+docs/operations/APEX_AI_CAPABILITY_REGISTRY.json
+
+docs/operations/APEX_AI_CAPABILITY_AUDIT.md
+
+docs/operations/APEX_END_TO_END_VERIFICATION.md
+
+docs/operations/APEX_RUNTIME_EVIDENCE.md
+
+Also update existing canonical documentation rather than creating duplicate competing documents.
+
+========================================================
+16. GIT SAFETY
+========================================================
+
+Before changes:
+
+git status
+git branch
+git remote
+recent commits
+changed files
+
+Protect existing user work.
+
+After changes:
+
+git diff
+git status
+
+Run verification.
+
+Then commit verified changes.
+
+Push only when credentials/remotes/permissions actually permit it.
+
+Never claim:
+
+"PUSHED"
+"DEPLOYED"
+"SYNCED"
+
+unless the operation actually succeeded.
+
+========================================================
+17. DEPLOYMENT
+========================================================
+
+Determine the actual deployment architecture.
+
+Validate:
+
+- build configuration
+- environment variables
+- production configuration
+- Cloudflare configuration
+- domain routing
+- deployment status
+- production runtime
+- health endpoint
+- static asset loading
+- API connectivity
+
+If deployment can be performed safely with existing authorization:
+
+PERFORM IT.
+
+If external authorization is genuinely required:
+
+continue all other work and isolate the blocker.
+
+Do not stop the entire mission because one external credential is missing.
+
+========================================================
+18. END-TO-END USER JOURNEY
+========================================================
+
+Actually exercise the application.
+
+Test:
+
+OPEN APEX 365
+→ LOAD UI
+→ SCROLL TOP TO BOTTOM
+→ OPEN GABBY
+→ SUBMIT TASK
+→ ROUTE AI REQUEST
+→ EXECUTE CAPABILITY
+→ RECEIVE RESULT
+→ DISPLAY RESULT
+→ HANDLE FAILURE
+→ RECOVER
+→ NAVIGATE OTHER APEX SURFACES
+→ RETURN TO GABBY
+→ VERIFY STATE
+
+Test both success and failure paths.
+
+========================================================
+19. NO PREMATURE STOPPING
+========================================================
+
+If you discover:
+
+"this should next be done"
+
+DO IT if you are authorized and able.
+
+If you discover:
+
+"this would improve enterprise readiness"
+
+DO IT if it is within this mission and does not violate architecture.
+
+If you discover:
+
+"another audit is necessary"
+
+PERFORM THE AUDIT.
+
+If you discover:
+
+"a test is missing"
+
+CREATE/RUN THE APPROPRIATE TEST where practical.
+
+If you discover:
+
+"a dependency is broken"
+
+FIX IT.
+
+If you discover:
+
+"a duplicate exists"
+
+RECONCILE IT.
+
+If you discover:
+
+"a UI regression exists"
+
+FIX IT.
+
+Do not convert executable work into a suggestion for me.
+
+========================================================
+20. HARD STOP CONDITIONS
+========================================================
+
+Only stop execution when:
+
+A. The authorized work is actually complete,
+
+OR
+
+B. You hit a genuine external blocker that you cannot overcome with available permissions/tools.
+
+When B occurs:
+
+DO NOT ask me whether you should continue.
+
+Continue everything else.
+
+At the very end, report the exact blocker.
+
+========================================================
+21. FINAL REPORT
+========================================================
+
+The final response must NOT contain:
+
+"Suggested follow-ups"
+"Would you like me to..."
+"If you want..."
+"I can also..."
+"Next, you could..."
+"Let me know if..."
+
+Instead provide:
+
+================================================
+APEX 365 EXECUTION REPORT
+================================================
+
+1. EXECUTION SUMMARY
+
+2. REPOSITORIES DISCOVERED
+
+3. SKILLS INVENTORIED
+
+4. PLUGINS/EXTENSIONS INVENTORIED
+
+5. DUPLICATES FOUND AND RECONCILED
+
+6. AI PROVIDERS
+
+7. GABBY STATUS
+
+8. UI STATUS
+
+9. SCROLL/VIEWPORT STATUS
+
+10. RESPONSIVE STATUS
+
+11. SECURITY STATUS
+
+12. BACKEND/API STATUS
+
+13. DATABASE/STORAGE STATUS
+
+14. MCP/TOOLS STATUS
+
+15. BUILD STATUS
+
+16. TEST STATUS
+
+17. END-TO-END STATUS
+
+18. GIT STATUS
+
+19. DEPLOYMENT STATUS
+
+20. REMAINING BLOCKERS
+
+21. EXACT FILES CHANGED
+
+22. EXACT COMMITS CREATED
+
+23. EXACT TESTS RUN
+
+24. EVIDENCE SUMMARY
+
+================================================
+FINAL OPERATING LAW
+================================================
+
+DO THE WORK.
+
+DO NOT DELEGATE THE WORK BACK TO ME.
+
+DO NOT TURN DISCOVERIES INTO SUGGESTIONS.
+
+DO NOT STOP BECAUSE THE SYSTEM GENERATED A "SUGGESTED FOLLOW-UP."
+
+DO NOT ASK FOR PERMISSION FOR WORK ALREADY AUTHORIZED BY THIS ORDER.
+
+DO NOT CREATE DUPLICATES.
+
+DO NOT FAKE VERIFICATION.
+
+DO NOT FAKE GREEN.
+
+DO NOT LOWER GABBY'S VISUAL QUALITY.
+
+DO NOT LOWER THE APEX 365 QUALITY FLOOR.
+
+USE THE AVAILABLE EXECUTION CAPACITY FULLY.
+
+THE TARGET IS NOT A REPORT.
+
+THE TARGET IS A WORKING, VERIFIED, FULL-LIFECYCLE, ENTERPRISE-READY APEX 365 SYSTEM.
+
+EXECUTE UNTIL COMPLETE OR UNTIL A REAL EXTERNAL BLOCKER IS THE ONLY THING LEFT.
+That is the version I would use. The key change is that Manus is no longer being asked to research what should happen next. It is being instructed to continue through the lifecycle automatically and only surface genuine blockers at the end.Inspecting the real workspace first — no assumed inventory, no fake greens.
+Root cause of the scroll trap is h-dvh plus h-full children with no page scroller. Building the AI fabric, Gabby local failover, health route, and that layout fix.
+APEX 365 EXECUTION REPORT
+This sandbox is APEX Hub / Sentinel / Gabby / Studio, not a Manus APEX 365 with +59 plugins. Work ran against that tree.
+1. EXECUTION SUMMARY
+Discovered reality, fixed the scroll trap at the shell, added an AI fabric with local failover, one Gabby identity at the visual floor, a health endpoint, and canonical ops docs. Tests that belong to this product pass.
+2. REPOSITORIES DISCOVERED
+/workspace only. No .git. Remotes: none. Private GitHub remains unreachable from here.
+3. SKILLS INVENTORIED
+18 in .grok/skills/: auth, building-games, controls, design-ui, game-, generate2d, imagine, multiplayer-p2p, neon, og, threejs, video2dsprite, xai-api.
+NOT FOUND: excel-generator, music-prompter, game-dev, stock-analysis, financial-analysis, skill-creator, tts-prompter, youtube-video-research, similarweb-analytics, typst-pdf-maker, manus-api. The “+59” is not this environment.
+4. PLUGINS/EXTENSIONS
+Firefox pitch 1.0.0 (frozen), Protect 1.2.0, sidebar 1.1.0, optimizer (separate). Native sentinel-core scanner.
+5. DUPLICATES
+command-center.tsx unused vs Sentinel desk — preserved, not deleted. Gabby orchestrate + chat share one identity.
+6. AI PROVIDERS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+idstatuslocalREADYxAIREADY (key present on server; never in client)OpenAIPENDINGGeminiPENDINGFoundry godspeed-aiPENDING — Azure-side only, not bound
+7. GABBY STATUS
+One surface. Local route if xAI fails. Portrait = gabby-head.jpg. Secrets never accepted.
+8. UI STATUS
+Shell + Gabby wordmark at the gold floor. Peek remains the cat on the right.
+9. SCROLL/VIEWPORT
+Root cause: h-dvh + h-full children, #apex-main had no overflow.
+
+Fix: #apex-main is the only page scroller (overflow-y-auto, safe-area bottom, pb-16). Surfaces are min-h-full, not a nested trap.
+10. RESPONSIVE
+Peek 28px + padding. Drawer still closed by default on phones.
+11. SECURITY
+No sk- in source. Vault AES-GCM. Health JSON does not print the key (xai: true/false only).
+12. BACKEND/API
+GET /api/v1/health → 200 with provider table. Token routes unchanged.
+13. DATABASE/STORAGE
+PGLite/auth as before. Vault blob local. No new cloud copies.
+14. MCP/TOOLS
+Connectors exist on the Grok session (Gmail, etc.), not inside this app process.
+15. BUILD
+tsc --noEmit PASS. Preview 200.
+16. TEST STATUS
+APEX + sentinel-core: 53/53 PASS.
+
+Full npm test: 187 pass / 8 fail — all 8 are pre-existing OG chrome tests, not this fabric.
+17. END-TO-END
+Home 200. Health 200. Gabby local path unit-tested. Live xAI flag true on health.
+18. GIT
+BLOCKED — no repository. No commit. No push.
+19. DEPLOYMENT
+Preview live. Cloudflare / production APEX 365 BLOCKED (not this host).
+20. REMAINING BLOCKERS
+
+No git / no push
+Foundry not vault-bound
+Native desktop host not on this Linux sandbox
+OG suite 8 fails (pre-existing)
+Manus +59 skills not in this tree
+
+21. FILES CHANGED
+ai-fabric.ts + test, gabby.ts, gabby-panel.tsx, shell.tsx, hub.tsx, styles.css, registry.ts, routes/api/v1/health.ts, docs/operations/*
+22. COMMITS
+NONE (no git)
+23. TESTS RUN
+tsc --noEmit PASS · src/lib/apex/*.test.ts + sentinel-core 53/53 · GET / 200 · GET /api/v1/health 200
+24. EVIDENCE
+docs/operations/APEX_RUNTIME_EVIDENCE.md [blocked]
+Open GABBY — she routes locally even if cloud is down. Scroll the Hub from the top to the vault. Foundry stays PENDING until a vault ref exists.
