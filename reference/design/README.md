@@ -14,10 +14,24 @@
 
 1. **Match the picture.** Layout, proportions, colors and type come from the image. Do not add sections, remove sections, or "improve" the composition unless Mac approves it.
 2. **The main thing stays the biggest thing.** Each surface has one hero (see below). Nothing covers it, and it never shrinks to make room for side panels.
-3. **High-end, not cluttered.** Black and deep-navy glass, thin glowing borders, generous spacing, premium type. No crowding and no empty gaps.
+3. **High-end, not cluttered.** Follow the house style below. Generous spacing, premium type, no crowding and no empty gaps.
 4. **One reference per prompt.** When sending a design to a builder (Google Stitch, Google AI Studio, Grok, v0), attach only the one image for the screen being built. Mixing images makes builders blend the designs.
 5. **Change layout without losing features.** A visual rebuild keeps every working button, route and function. See `docs/APEX_VISUAL_BUILD_PRESERVATION_PROTOCOL.md`.
 6. **Every control works or says why it doesn't.** No fake "LIVE", "CONNECTED" or numbers without real data behind them.
+
+---
+
+## House style: one look everywhere
+
+**The Executive Office image (`apex-executive-office.png`) sets the look for every APEX surface,** including the Global Market and the 360 Atelier. Mac designed the layouts; this black-and-gold treatment is the approved finish.
+
+- **Colors:** true black and charcoal backgrounds; **warm metallic gold** for buttons, active states, icons and borders; soft white and warm gray text. No neon, no electric blue or purple glows, no rainbow gradients, no "cyberpunk" look.
+- **Type:** an elegant serif for big headlines; a clean, light sans-serif for everything else; gold small caps with wide letter spacing for labels.
+- **Surfaces:** dark glass panels with a thin gold hairline border and a soft inner glow. Rounded corners, never bubbly.
+- **Imagery:** real photography, warm cinematic light, deep shadows.
+- **Feel:** a luxury brand's private office. Calm, expensive, confident.
+
+The Global Market and 360 Atelier images are **layout** references only. Keep their structure, and apply this house style instead of their blue and purple colors.
 
 ---
 
@@ -40,7 +54,7 @@ Top to bottom:
 
 ## 2. APEX Global Market — `apex-global-market.png`
 
-**Palette:** deep space navy, electric blue to violet glow, white type.
+**Palette:** house style (black and gold). The blue/violet in the image is not approved.
 **Hero:** the glowing globe with products orbiting it, "Global Brands. Real Deals. Bigger Possibilities."
 
 Top to bottom:
@@ -59,7 +73,7 @@ Top to bottom:
 
 ## 3. APEX 360 Atelier — `apex-360-atelier.png`
 
-**Palette:** black and navy glass, electric blue glow, gold for the selected item.
+**Palette:** house style (black and gold). The blue glow in the image is not approved.
 **Hero:** the **live camera / preview frame**, the largest element, never covered.
 
 Desktop grid:
