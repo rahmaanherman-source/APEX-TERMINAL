@@ -1,74 +1,53 @@
 # APEX Character Reference Method
 
-**Owner:** Mac (Rahmann Herman)
-**Status:** DOCUMENTED. This is the method. No runtime enforces it yet.
-**Applies to:** every image, video, avatar and 3D tool that renders Mac or any APEX character.
+**Status:** DOCUMENTED; automatic 3D reconstruction and runtime enforcement are not verified.
 
-## Why this exists
+## Core rule
+Never rely on one photograph to define a character across multiple angles. Use labeled views of the same person plus genuine multi-angle photographs when available. Preserve identity; do not redesign the face or substitute a generic avatar.
 
-AI generators guess what they cannot see. If you give one a single front-facing photo, it invents the side of the head, the ears, the jawline and the beard edge, and the likeness drifts every time the head turns.
+## Canonical angle set
+| Slot | View | Yaw | Pitch | Requirement |
+|---|---|---:|---:|---|
+| A | Front | 0° | 0° | Required |
+| B | Three-quarter left | -45° | 0° | Required |
+| C | Three-quarter right | +45° | 0° | Required |
+| D | Left profile | -90° | 0° | Required |
+| E | Right profile | +90° | 0° | Required |
+| F | Back of head | 180° | 0° | Required for true 3D/head-shape work |
+| G1 | Looking up | 0° | +20° | Supplemental |
+| G2 | Looking down | 0° | -20° | Supplemental |
 
-This method stops that by giving the model every side of the face up front, along with a fixed grid and known camera angles, so it maps the face instead of guessing.
+Yaw convention: 0° is front; negative turns toward the subject's left; positive toward the subject's right. Confirm and convert to the target tool's coordinate convention.
 
-## The rule
+## Sheet status
+Expected master-sheet path: `reference/character/mac-multi-angle-reference-sheet.png`. **This file was not found in the repository during verification on 2026-10-11.** The path is a target, not proof the image is committed. Do not tell builders the sheet is present until GitHub returns the file. Slots F, G1, and G2 are also missing until supplied. Never invent missing views and label them genuine photographs.
 
-**Never generate a character from one photo.** Always feed the full reference set below.
+## Photos and grid
+When available and approved, use about 10–20 sharp, unfiltered photographs from varied angles. Prefer even lighting, neutral expressions, visible facial features, and low perspective distortion. Keep beard, hairline, glasses, jewelry, and dental-grill choices consistent; flag conflicting references and document the canonical look.
 
-## 1. The reference set
+Use a plain background, even front lighting, eye-level camera, constant distance, and consistent top-of-head-to-collarbone framing. A 3×3 grid is an alignment guide: eyes near the top third, nose near the center vertical line in front view, chin above the bottom third. These are visual guides, not measured pixel coordinates.
 
-| Slot | View | Head turn (yaw) | Required |
-|---|---|---|---|
-| A | Front | 0° | Yes |
-| B | Three-quarter left | -45° | Yes |
-| C | Three-quarter right | +45° | Yes |
-| D | Profile left | -90° | Yes |
-| E | Profile right | +90° | Yes |
-| F | Back of head | 180° | For 3D only |
-| G | Looking up / looking down | pitch ±20° | Recommended |
+## Tool routing
+- Multi-reference image/video generator: use the supported subset of the sheet and real photos.
+- Talking-avatar/lip-sync: use one clean front image (slot A) or the vendor-required source video. Never send the grid to a tool that does not support collages.
+- 3D/photogrammetry: use individual labeled images with yaw/pitch metadata and confirmed coordinate conventions.
+- Digital twin: follow the vendor's recording and consent requirements; a sheet alone does not replace required source video.
 
-Current master sheet: [`reference/character/mac-multi-angle-reference-sheet.png`](../reference/character/mac-multi-angle-reference-sheet.png). It covers slots A–E.
+## Identity and quality gate
+Preserve head/facial structure, skin tone, eyes/brows, nose, lips, ears, jaw, hairline, hairstyle, facial hair, and approved distinctive details. Compare front, three-quarter, and profile outputs; reject identity drift.
 
-## 2. Real photos on top of the sheet
+## Character Studio and implementation truth
+The UI exists in `app/character-studio/page.tsx` and the static visual in `visual/APEX_CHARACTER_STUDIO_EXACT.html`; the figures are placeholders, not a verified finished likeness. The machine-readable contract is `docs/character-reference-spec.json`. No verified APEX service currently reads this spec and automatically reconstructs a head or maps cameras.
 
-The sheet is the map. Real photos are the proof. Add as many real photos as you have, from different angles, so the model sees true skin texture, beard density and lighting.
+## Privacy and consent
+Use photographs only with permission. Do not commit private face-reference images to a public repository without explicit approval. Label each asset as genuine photo, generated supplement, placeholder, or approved canonical reference.
 
-- 10–20 real photos is a strong set.
-- Use a mix of angles, not 20 front selfies.
-- Use the same look in every photo: beard length, grill or no grill, glasses or none. If the look varies, the model blends the versions.
-
-## 3. Shoot to a grid
-
-The grid gives every image the same scale and placement, so angles can be compared and measured.
-
-- Plain dark background and even lighting from the front.
-- Camera at eye level, the same distance for every shot.
-- Use a 3×3 grid overlay in the camera app:
-  - eyes on the top third line
-  - nose on the center vertical line for the front view
-  - chin above the bottom third line
-- Same framing for every slot: top of the head to the collarbone.
-- Shoot the angles in order, A through G, and name the files by slot (`A_front.jpg`, `B_34_left.jpg`, and so on).
-
-## 4. 3D mapping: angles as numbers
-
-Every slot has a fixed yaw and pitch (see the [spec](character-reference-spec.json)). Because each photo is tagged with the angle it was taken from, a 3D tool or photogrammetry pipeline can place the cameras around the head and solve the shape. That is the "3D calculator": known camera angles plus grid-aligned photos in, mapped head out.
-
-What is real today and what is not:
-- **Real:** the sheet, the angle table, the grid rules, and tools that accept multi-image references.
-- **Not built yet:** an APEX service that reads this spec and runs reconstruction automatically. The Character Studio turnaround panel (`app/character-studio/page.tsx`) is a UI layout with placeholder figures only.
-
-## 5. Which input goes to which tool
-
-| Tool type | What to give it |
-|---|---|
-| Image or video generators with reference inputs | The full sheet plus the real photos |
-| Talking-avatar and lip-sync tools | Slot A cropped alone, or a 1–2 minute talking-to-camera video |
-| 3D or photogrammetry tools | Every slot as a separate image, tagged with its yaw and pitch |
-
-**Never upload the grid sheet to a lip-sync tool.** It will animate the collage.
-
-## 6. Check before you publish
-
-- Compare the output against slot A and one profile slot.
-- Check the beard line, ear shape, head shape and teeth (grill or not).
-- If it drifts, add more real photos from the angle that failed. Don't just re-roll.
+## Acceptance checklist
+- [ ] Supplied angles are labeled and use the declared coordinate convention.
+- [ ] Missing angles are marked missing, not fabricated.
+- [ ] Genuine photos are included only when available and approved.
+- [ ] Conflicting appearance details are resolved and recorded.
+- [ ] Single-image tools receive one supported image, not an unsupported collage.
+- [ ] Front, three-quarter, and profile outputs pass identity checks.
+- [ ] Private references are not made public without explicit approval.
+- [ ] Runtime implementation is claimed only after tests pass.
