@@ -3,133 +3,56 @@
   "version": "1.1.0",
   "status": "DOCUMENTED_REFERENCE_CONTRACT_NOT_AUTOMATED",
   "method_doc": "docs/APEX_CHARACTER_REFERENCE_METHOD.md",
-  "rule": "Never rely on one photograph to define identity across angles. Use the full supported reference set for the task; single-image talking-avatar tools receive only one approved front image or the vendor-required source video.",
+  "rule": "Use a labeled multi-angle set for identity consistency. A single-photo source is not enough for a reliable multi-angle 3D likeness.",
+  "coordinate_convention": {
+    "yaw_deg": "0=front; negative=subject turns left; positive=subject turns right; +/-90=profile; 180=back",
+    "pitch_deg": "0=level; positive=looking up; negative=looking down",
+    "note": "Confirm the coordinate convention of the target tool."
+  },
   "grid": {
     "type": "rule_of_thirds_3x3",
-    "background": "plain dark",
-    "lighting": "even, front-facing",
+    "background": "plain",
+    "lighting": "even",
     "camera_height": "eye level",
-    "camera_distance": "constant across all slots",
+    "camera_distance": "constant across slots",
     "framing": "top of head to collarbone",
     "landmarks": {
-      "eyes": "near top-third line",
-      "nose": "near center vertical line for front view",
-      "chin": "above bottom-third line",
-      "coordinate_status": "visual guides only; actual per-image landmark coordinates must be measured or annotated"
+      "eyes": "near top third line",
+      "nose": "near center vertical line in front view",
+      "chin": "above bottom third line",
+      "coordinate_status": "visual guides only; measure or annotate actual image coordinates"
     }
   },
   "slots": [
-    {
-      "id": "A",
-      "view": "front",
-      "yaw_deg": 0,
-      "pitch_deg": 0,
-      "required": true,
-      "file": "A_front"
-    },
-    {
-      "id": "B",
-      "view": "three_quarter_left",
-      "yaw_deg": -45,
-      "pitch_deg": 0,
-      "required": true,
-      "file": "B_34_left"
-    },
-    {
-      "id": "C",
-      "view": "three_quarter_right",
-      "yaw_deg": 45,
-      "pitch_deg": 0,
-      "required": true,
-      "file": "C_34_right"
-    },
-    {
-      "id": "D",
-      "view": "profile_left",
-      "yaw_deg": -90,
-      "pitch_deg": 0,
-      "required": true,
-      "file": "D_profile_left"
-    },
-    {
-      "id": "E",
-      "view": "profile_right",
-      "yaw_deg": 90,
-      "pitch_deg": 0,
-      "required": true,
-      "file": "E_profile_right"
-    },
-    {
-      "id": "F",
-      "view": "back",
-      "yaw_deg": 180,
-      "pitch_deg": 0,
-      "required": false,
-      "required_for": [
-        "3d"
-      ],
-      "file": "F_back"
-    },
-    {
-      "id": "G1",
-      "view": "look_up",
-      "yaw_deg": 0,
-      "pitch_deg": 20,
-      "required": false,
-      "file": "G1_up"
-    },
-    {
-      "id": "G2",
-      "view": "look_down",
-      "yaw_deg": 0,
-      "pitch_deg": -20,
-      "required": false,
-      "file": "G2_down"
-    }
+    {"id":"A","view":"front","yaw_deg":0,"pitch_deg":0,"required":true,"file":"A_front"},
+    {"id":"B","view":"three_quarter_left","yaw_deg":-45,"pitch_deg":0,"required":true,"file":"B_34_left"},
+    {"id":"C","view":"three_quarter_right","yaw_deg":45,"pitch_deg":0,"required":true,"file":"C_34_right"},
+    {"id":"D","view":"profile_left","yaw_deg":-90,"pitch_deg":0,"required":true,"file":"D_profile_left"},
+    {"id":"E","view":"profile_right","yaw_deg":90,"pitch_deg":0,"required":true,"file":"E_profile_right"},
+    {"id":"F","view":"back","yaw_deg":180,"pitch_deg":0,"required":false,"required_for":["3d"],"file":"F_back"},
+    {"id":"G1","view":"look_up","yaw_deg":0,"pitch_deg":20,"required":false,"file":"G1_up"},
+    {"id":"G2","view":"look_down","yaw_deg":0,"pitch_deg":-20,"required":false,"file":"G2_down"}
   ],
   "real_photos": {
-    "recommended_count": [
-      10,
-      20
-    ],
-    "mix_angles": true,
-    "consistent_look": [
-      "beard length",
-      "grill or no grill",
-      "glasses or none"
-    ]
+    "recommended_count":[10,20],
+    "mix_angles":true,
+    "consistent_look":["beard length","grill or no grill","glasses or none"]
   },
   "routing": {
-    "image_video_generators": "Use full sheet plus genuine photos only when the target tool supports multiple references; follow its input limits.",
-    "talking_avatar_lipsync": "Use slot A alone or the vendor-required source video; never use the grid sheet unless explicitly supported.",
-    "three_d_photogrammetry": "Use each supplied angle as a separate image tagged with yaw_deg and pitch_deg; confirm coordinate convention.",
-    "digital_twin": "Follow the vendor's required recording and consent flow; a reference sheet alone is not a substitute for source video.",
-    "review": "Compare front, three-quarter, and profile outputs against approved references; reject identity drift."
+    "image_video_generators":"Use multi-view sheet plus genuine photos only when the tool supports them.",
+    "talking_avatar_lipsync":"Use slot A alone or the vendor-required source video; do not send the grid to a tool that does not support collages.",
+    "three_d_photogrammetry":"Use individual labeled images tagged with yaw_deg and pitch_deg; confirm tool coordinate convention.",
+    "digital_twin":"Follow the vendor's recording and consent process; a sheet alone does not replace required source video."
   },
   "characters": {
     "mac": {
-      "expected_master_sheet_path": "reference/character/mac-multi-angle-reference-sheet.png",
-      "master_sheet_present_in_repository": false,
-      "repository_status_verified_at": "2026-10-11",
-      "status_note": "Expected path only; fetch returned NOT_FOUND during verification. Do not claim the image is committed until verified.",
-      "intended_slots_if_source_sheet_is_supplied": [
-        "A",
-        "B",
-        "C",
-        "D",
-        "E"
-      ],
-      "slots_missing_until_supplied": [
-        "F",
-        "G1",
-        "G2"
-      ],
-      "automatic_3d_mapping": "not_implemented_or_verified"
+      "expected_master_sheet_path":"reference/character/mac-multi-angle-reference-sheet.png",
+      "master_sheet_present_in_repository":false,
+      "repository_status_verified_at":"2026-10-11",
+      "status_note":"The expected path returned NOT_FOUND during verification. Do not claim the image is committed until GitHub confirms it exists.",
+      "intended_slots_if_sheet_is_supplied":["A","B","C","D","E"],
+      "slots_missing_until_supplied":["F","G1","G2"],
+      "automatic_3d_mapping":"not_implemented_or_verified"
     }
-  },
-  "coordinate_convention": {
-    "yaw_deg": "0=front; negative=subject turns to their left; positive=subject turns to their right; +/-90=profile; 180=back",
-    "pitch_deg": "0=level; positive=looking up; negative=looking down",
-    "roll_deg": "0=level; confirm axis convention with each target tool"
   }
 }
