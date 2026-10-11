@@ -1,9 +1,9 @@
 {
   "name": "apex-character-reference-spec",
-  "version": "1.0.0",
-  "status": "DOCUMENTED",
+  "version": "1.1.0",
+  "status": "DOCUMENTED_REFERENCE_CONTRACT_NOT_AUTOMATED",
   "method_doc": "docs/APEX_CHARACTER_REFERENCE_METHOD.md",
-  "rule": "Never generate a character from a single photo. Feed the full reference set.",
+  "rule": "Never rely on one photograph to define identity across angles. Use the full supported reference set for the task; single-image talking-avatar tools receive only one approved front image or the vendor-required source video.",
   "grid": {
     "type": "rule_of_thirds_3x3",
     "background": "plain dark",
@@ -12,36 +12,124 @@
     "camera_distance": "constant across all slots",
     "framing": "top of head to collarbone",
     "landmarks": {
-      "eyes": "top third line",
-      "nose": "center vertical line (front view)",
-      "chin": "above bottom third line"
+      "eyes": "near top-third line",
+      "nose": "near center vertical line for front view",
+      "chin": "above bottom-third line",
+      "coordinate_status": "visual guides only; actual per-image landmark coordinates must be measured or annotated"
     }
   },
   "slots": [
-    { "id": "A", "view": "front", "yaw_deg": 0, "pitch_deg": 0, "required": true, "file": "A_front" },
-    { "id": "B", "view": "three_quarter_left", "yaw_deg": -45, "pitch_deg": 0, "required": true, "file": "B_34_left" },
-    { "id": "C", "view": "three_quarter_right", "yaw_deg": 45, "pitch_deg": 0, "required": true, "file": "C_34_right" },
-    { "id": "D", "view": "profile_left", "yaw_deg": -90, "pitch_deg": 0, "required": true, "file": "D_profile_left" },
-    { "id": "E", "view": "profile_right", "yaw_deg": 90, "pitch_deg": 0, "required": true, "file": "E_profile_right" },
-    { "id": "F", "view": "back", "yaw_deg": 180, "pitch_deg": 0, "required": false, "required_for": ["3d"], "file": "F_back" },
-    { "id": "G1", "view": "look_up", "yaw_deg": 0, "pitch_deg": 20, "required": false, "file": "G1_up" },
-    { "id": "G2", "view": "look_down", "yaw_deg": 0, "pitch_deg": -20, "required": false, "file": "G2_down" }
+    {
+      "id": "A",
+      "view": "front",
+      "yaw_deg": 0,
+      "pitch_deg": 0,
+      "required": true,
+      "file": "A_front"
+    },
+    {
+      "id": "B",
+      "view": "three_quarter_left",
+      "yaw_deg": -45,
+      "pitch_deg": 0,
+      "required": true,
+      "file": "B_34_left"
+    },
+    {
+      "id": "C",
+      "view": "three_quarter_right",
+      "yaw_deg": 45,
+      "pitch_deg": 0,
+      "required": true,
+      "file": "C_34_right"
+    },
+    {
+      "id": "D",
+      "view": "profile_left",
+      "yaw_deg": -90,
+      "pitch_deg": 0,
+      "required": true,
+      "file": "D_profile_left"
+    },
+    {
+      "id": "E",
+      "view": "profile_right",
+      "yaw_deg": 90,
+      "pitch_deg": 0,
+      "required": true,
+      "file": "E_profile_right"
+    },
+    {
+      "id": "F",
+      "view": "back",
+      "yaw_deg": 180,
+      "pitch_deg": 0,
+      "required": false,
+      "required_for": [
+        "3d"
+      ],
+      "file": "F_back"
+    },
+    {
+      "id": "G1",
+      "view": "look_up",
+      "yaw_deg": 0,
+      "pitch_deg": 20,
+      "required": false,
+      "file": "G1_up"
+    },
+    {
+      "id": "G2",
+      "view": "look_down",
+      "yaw_deg": 0,
+      "pitch_deg": -20,
+      "required": false,
+      "file": "G2_down"
+    }
   ],
   "real_photos": {
-    "recommended_count": [10, 20],
+    "recommended_count": [
+      10,
+      20
+    ],
     "mix_angles": true,
-    "consistent_look": ["beard length", "grill or no grill", "glasses or none"]
+    "consistent_look": [
+      "beard length",
+      "grill or no grill",
+      "glasses or none"
+    ]
   },
   "routing": {
-    "image_video_generators": "full sheet + real photos",
-    "talking_avatar_lipsync": "slot A alone, or 1-2 min talking-to-camera video; never the grid sheet",
-    "3d_photogrammetry": "each slot as a separate image tagged with yaw_deg and pitch_deg"
+    "image_video_generators": "Use full sheet plus genuine photos only when the target tool supports multiple references; follow its input limits.",
+    "talking_avatar_lipsync": "Use slot A alone or the vendor-required source video; never use the grid sheet unless explicitly supported.",
+    "three_d_photogrammetry": "Use each supplied angle as a separate image tagged with yaw_deg and pitch_deg; confirm coordinate convention.",
+    "digital_twin": "Follow the vendor's required recording and consent flow; a reference sheet alone is not a substitute for source video.",
+    "review": "Compare front, three-quarter, and profile outputs against approved references; reject identity drift."
   },
   "characters": {
     "mac": {
-      "master_sheet": "reference/character/mac-multi-angle-reference-sheet.png",
-      "slots_covered": ["A", "B", "C", "D", "E"],
-      "slots_missing": ["F", "G1", "G2"]
+      "expected_master_sheet_path": "reference/character/mac-multi-angle-reference-sheet.png",
+      "master_sheet_present_in_repository": false,
+      "repository_status_verified_at": "2026-10-11",
+      "status_note": "Expected path only; fetch returned NOT_FOUND during verification. Do not claim the image is committed until verified.",
+      "intended_slots_if_source_sheet_is_supplied": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "slots_missing_until_supplied": [
+        "F",
+        "G1",
+        "G2"
+      ],
+      "automatic_3d_mapping": "not_implemented_or_verified"
     }
+  },
+  "coordinate_convention": {
+    "yaw_deg": "0=front; negative=subject turns to their left; positive=subject turns to their right; +/-90=profile; 180=back",
+    "pitch_deg": "0=level; positive=looking up; negative=looking down",
+    "roll_deg": "0=level; confirm axis convention with each target tool"
   }
 }
