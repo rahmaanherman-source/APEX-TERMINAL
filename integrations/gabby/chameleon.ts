@@ -1,5 +1,3 @@
-import { supabase } from "../../lib/supabaseClient";
-
 export type ChameleonMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -11,6 +9,14 @@ export type ChameleonReply = {
   rerouted: boolean;
   trail?: Array<{ provider: string; reason: string; status: number }>;
   latency_ms?: number;
+};
+
+// Inject the app's existing Supabase client at the call site. This avoids creating
+// a second client or assuming a path that may not exist in the consuming app.
+type SupabaseInvoker = {
+  functions: {
+    invoke(name: string, options: { body: unknown }): Promise<{ data: unknown; error: { message: string } | null }>;
+  };
 };
 
 const LOCAL_BASE_URL =
@@ -37,7 +43,10 @@ async function probeLocal(): Promise<boolean> {
   }
 }
 
-export async function chameleonChat(messages: ChameleonMessage[]): Promise<ChameleonReply> {
+export async function chameleonChat(
+  messages: ChameleonMessage[],
+  supabase: SupabaseInvoker,
+): Promise<ChameleonReply> {
   if (!Array.isArray(messages) || messages.length === 0) {
     throw new Error("Chameleon needs at least one chat message.");
   }
@@ -67,7 +76,7 @@ export async function chameleonChat(messages: ChameleonMessage[]): Promise<Chame
 
   const { data, error } = await supabase.functions.invoke("chameleon", { body: { messages } });
   if (error) throw new Error(`Chameleon cloud route failed: ${error.message}`);
-  if (!data || typeof data.content !== "string" || typeof data.served_by !== "string") {
+  if (!data || typeof (data as ChameleonReply).content !== "string" || typeof (data as ChameleonReply).served_by !== "string") {
     throw new Error("Chameleon returned an invalid response.");
   }
   return data as ChameleonReply;
