@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "APEX Terminal Toggle",
-  "version": "0.1.1",
-  "description": "Routes explicit commands or selected text to the local APEX Terminal Bridge.",
+  "version": "0.2.0",
+  "description": "Runs exact safe-mode commands through the local APEX Terminal Bridge.",
   "permissions": ["storage", "contextMenus"],
   "host_permissions": ["http://127.0.0.1:18765/*"],
   "action": {"default_title": "APEX Terminal Toggle", "default_popup": "popup.html"},
