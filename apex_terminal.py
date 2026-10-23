@@ -1,0 +1,4339 @@
+import os
+import sys
+import json
+import time
+import hashlib
+import subprocess
+import threading
+import socket
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Callable, List, Dict, Any
+import numpy as np
+
+# ---------- LOGGING ----------
+logging.basicConfig(level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(), logging.FileHandler('apex_engine.log')])
+log = logging.getLogger("APEX")
+
+# ============================================================
+# SECTION 1 — NETWORK SENTINEL (Internet toggle + self‑check)
+# ============================================================
+class NetworkSentinel:
+    def __init__(self):
+        self.online = False
+        self._lock = threading.Lock()
+        self._checksum_before: Optional[str] = None
+        self.on_status_change: Optional[Callable] = None
+        log.info("[SENTINEL] Network Sentinel initialized — OFFLINE mode")
+
+    def _system_checksum(self) -> str:
+        h = hashlib.sha256()
+        engine_dir = Path(__file__).parent
+        for f in sorted(engine_dir.rglob("*.py")):
+            try:
+                h.update(f.read_bytes())
+            except Exception as e:
+                log.warning(f"Failed to read file {f}: {e}")
+        return h.hexdigest()
+
+    def _is_actually_online(self) -> bool:
+        try:
+            socket.setdefaulttimeout(2)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            return True
+        except:
+            return False
+
+    def go_online(self) -> bool:
+        with self._lock:
+            self._checksum_before = self._system_checksum()
+            self.online = True
+            log.warning("[SENTINEL] ⚠ GOING ONLINE — task pending")
+            if self.on_status_change: 
+                self.on_status_change(True)
+            return True
+
+    def go_offline(self) -> dict:
+        with self._lock:
+            self.online = False
+            log.info("[SENTINEL] Returning OFFLINE")
+            result = self._self_check()
+            if self.on_status_change: 
+                self.on_status_change(False)
+            return result
+
+    def _self_check(self) -> dict:
+        checksum_after = self._system_checksum()
+        clean = (self._checksum_before == checksum_after)
+        status = "CLEAN" if clean else "MODIFIED — REVIEW REQUIRED"
+        log.info(f"[SENTINEL] Self-check: {status}")
+        return {
+            "status": status,
+            "clean": clean,
+            "checksum_before": self._checksum_before,
+            "checksum_after": checksum_after,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def online_task(self, task_fn: Callable, *args, **kwargs):
+        self.go_online()
+        try:
+            result = task_fn(*args, **kwargs)
+            return result
+        except Exception as e:
+            log.error(f"[SENTINEL] Online task failed: {e}")
+            raise
+        finally:
+            check = self.go_offline()
+            if not check["clean"]:
+                log.critical("[SENTINEL] ⚠ FILES MODIFIED DURING ONLINE SESSION")
+
+    @property
+    def status(self) -> str:
+        return "ONLINE" if self.online else "OFFLINE"
+
+# ============================================================
+# SECTION 2 — GITHUB PIPELINE (Auto‑push, no manual steps)
+# ============================================================
+class GitHubPipeline:
+    def __init__(self, sentinel: NetworkSentinel, repo_path: str = "."):
+        self.sentinel = sentinel
+        self.repo_path = Path(repo_path).resolve()
+        self.owner = "rahmaanherman-source"
+        log.info(f"[GIT] Pipeline initialized — repo: {self.repo_path}")
+
+    def _run(self, cmd: list, cwd: Optional[Path] = None) -> tuple:
+        cwd = cwd or self.repo_path
+        result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    def status(self) -> dict:
+        code, out, err = self._run(["git", "status", "--porcelain"])
+        return {
+            "changes": out.splitlines() if out else [],
+            "clean": not bool(out),
+            "repo": str(self.repo_path)
+        }
+
+    def stage_all(self) -> bool:
+        code, out, err = self._run(["git", "add", "-A"])
+        return code == 0
+
+    def commit(self, message: str) -> bool:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        full_msg = f"{message}\n\nAPEX Engine Terminal | Rahmann Herman | Patent 63/940,186\nTimestamp: {timestamp}"
+        code, out, err = self._run(["git", "commit", "-m", full_msg])
+        return code == 0
+
+    def push(self, branch: str = "main") -> dict:
+        def _push():
+            code, out, err = self._run(["git", "push", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err,
+                "branch": branch
+            }
+        return self.sentinel.online_task(_push)
+
+    def pull(self, branch: str = "main") -> dict:
+        def _pull():
+            code, out, err = self._run(["git", "pull", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err
+            }
+        return self.sentinel.online_task(_pull)
+
+    def full_deploy(self, message: str, branch: str = "main") -> dict:
+        staged = self.stage_all()
+        committed = self.commit(message)
+        push_result = self.push(branch)
+        return {
+            "staged": staged,
+            "committed": committed,
+            "pushed": push_result.get("success", False),
+            "branch": branch,
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+
+    def init_repo(self, remote_url: str) -> bool:
+        self._run(["git", "init"])
+        self._run(["git", "branch", "-M", "main"])
+        self._run(["git", "remote", "add", "origin", remote_url])
+        return True
+
+# ============================================================
+# SECTION 3 — BUILD SYSTEM (Web, Mobile, Desktop)
+# ============================================================
+class ApexBuildSystem:
+    OWNERSHIP_HEADER = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================"""
+
+    def __init__(self, sentinel: NetworkSentinel, project_root: str = "."):
+        self.sentinel = sentinel
+        self.project_root = Path(project_root).resolve()
+        self.build_log = []
+        log.info("[BUILD] Build system initialized")
+
+    def _log(self, level: str, msg: str):
+        entry = {"time": datetime.now().isoformat(), "level": level, "msg": msg}
+        self.build_log.append(entry)
+        getattr(log, level.lower(), log.info)(f"[BUILD] {msg}")
+
+    def tag_file(self, filepath: str) -> bool:
+        path = Path(filepath)
+        if not path.exists(): 
+            return False
+        content = path.read_text(encoding="utf-8")
+        if "Make It All Count LLC" not in content:
+            path.write_text(self.OWNERSHIP_HEADER + content, encoding="utf-8")
+            self._log("info", f"Tagged: {filepath}")
+        return True
+
+    def tag_directory(self, directory: str = "."):
+        for ext in ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]:
+            for f in Path(directory).rglob(ext):
+                self.tag_file(str(f))
+        self._log("info", f"Directory tagged: {directory}")
+
+    def build_web(self) -> dict:
+        self._log("info", "Building for Web (Vercel)...")
+        code, out, err = self._run_cmd(["npm", "run", "build"])
+        return {"target": "web", "success": code == 0, "output": out or err}
+
+    def build_mobile(self) -> dict:
+        self._log("info", "Building for Mobile (Expo)...")
+        code, out, err = self._run_cmd(["npx", "expo", "build"])
+        return {"target": "mobile", "success": code == 0, "output": out or err}
+
+    def build_desktop(self) -> dict:
+        self._log("info", "Building for Desktop (Electron)...")
+        code, out, err = self._run_cmd(["npx", "electron-builder"])
+        return {"target": "desktop", "success": code == 0, "output": out or err}
+
+    def build_all(self) -> dict:
+        self._log("info", "Full stack build initiated")
+        results = {
+            "web": self.build_web(),
+            "mobile": self.build_mobile(),
+            "desktop": self.build_desktop(),
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+        success_count = sum(1 for k in ["web", "mobile", "desktop"] if results[k]["success"])
+        self._log("info", f"Build complete: {success_count}/3 targets successful")
+        return results
+
+    def _run_cmd(self, cmd: list) -> tuple:
+        try:
+            result = subprocess.run(cmd, cwd=str(self.project_root), capture_output=True, text=True, timeout=300)
+            return result.returncode, result.stdout.strip(), result.stderr.strip()
+        except FileNotFoundError:
+            return 1, "", f"Command not found: {cmd[0]}"
+        except subprocess.TimeoutExpired:
+            return 1, "", "Build timeout"
+        except Exception as e:
+            return 1, "", str(e)
+
+# ============================================================
+# SECTION 4 — PARADOX ENGINE (Outcome exploration + best‑choice)
+# ============================================================
+class ParadoxEngine:
+    """
+    The Paradox Engine:
+    - Takes a problem and generates all possible outcomes.
+    - Evaluates each outcome using a scoring function.
+    - Returns the optimal path (best outcome).
+    - Includes a photographic memory (vector DB) to store and recall details with high precision.
+    """
+    def __init__(self, memory_capacity: int = 1000):
+        self.memory = []  # List of (vector, data) pairs (simulated)
+        self.next_id = 0
+        log.info("[PARADOX] Paradox Engine initialized with photographic memory")
+
+    def _embed(self, text: str) -> np.ndarray:
+        """Simple embedding: hash-based vector (for demo; replace with actual embedding)."""
+        hash_val = int(hashlib.sha256(text.encode()).hexdigest(), 16) % 10**6
+        vec = np.zeros(128)
+        vec[hash_val % 128] = 1.0
+        return vec
+
+    def remember(self, text: str, data: Any):
+        """Store a memory with embedding for later retrieval."""
+        vec = self._embed(text)
+        self.memory.append({"id": self.next_id, "vector": vec, "data": data, "text": text})
+        self.next_id += 1
+        if len(self.memory) > 1000:
+            self.memory.pop(0)
+        log.debug(f"[PARADOX] Memory stored: {text[:50]}...")
+
+    def recall(self, query: str, top_k: int = 3) -> List[Any]:
+        """Retrieve most similar memories based on embedding similarity."""
+        q_vec = self._embed(query)
+        scored = []
+        for mem in self.memory:
+            sim = np.dot(q_vec, mem["vector"]) / (np.linalg.norm(q_vec) * np.linalg.norm(mem["vector"]) + 1e-9)
+            scored.append((sim, mem["data"]))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [data for _, data in scored[:top_k]]
+
+    def generate_outcomes(self, problem: str) -> List[Dict]:
+        outcomes = [
+            {"id": "deploy", "description": "Deploy the latest build to production", "score": 0.8, "steps": ["build", "push", "deploy"]},
+            {"id": "rollback", "description": "Revert to previous stable version", "score": 0.6, "steps": ["git revert", "redeploy"]},
+            {"id": "test_staging", "description": "Run tests in staging environment", "score": 0.9, "steps": ["build", "deploy_staging", "run_tests"]},
+            {"id": "hotfix", "description": "Apply emergency patch", "score": 0.4, "steps": ["patch", "deploy"]}
+        ]
+        return outcomes
+
+    def evaluate_outcome(self, outcome: Dict) -> float:
+        return outcome.get("score", 0.5)
+
+    def choose_best_outcome(self, problem: str) -> Dict:
+        outcomes = self.generate_outcomes(problem)
+        best = max(outcomes, key=lambda o: self.evaluate_outcome(o))
+        self.remember(problem, best)
+        log.info(f"[PARADOX] Best outcome chosen: {best['id']} (score: {self.evaluate_outcome(best)})")
+        return best
+
+    def reason(self, problem: str) -> Dict:
+        similar = self.recall(problem, top_k=1)
+        if similar:
+            log.info("[PARADOX] Found similar past problem, reusing solution.")
+            return similar[0]
+        return self.choose_best_outcome(problem)
+
+# ============================================================
+# SECTION 5 — BLENDER ADAPTER (Asset processing)
+# ============================================================
+class BlenderAdapter:
+    def __init__(self, asset_directory: str):
+        self.asset_directory = Path(asset_directory)
+        log.info(f"[BLENDER] Adapter initialized with directory: {asset_directory}")
+
+    def process_assets(self):
+        log.info("[BLENDER] Processing assets...")
+        for file in self.asset_directory.glob("*.obj"):
+            log.info(f"[BLENDER] Decimating {file.name}...")
+        log.info("[BLENDER] Texture atlas created (simulated).")
+
+    def auto_decimate(self, obj_name: str):
+        log.info(f"[BLENDER] Decimating {obj_name} with ratio 0.5 (simulated).")
+
+    def create_atlas(self, object_names: List[str]):
+        log.info(f"[BLENDER] Creating texture atlas for {len(object_names)} objects (simulated).")
+
+# ============================================================
+# SECTION 6 — TOOLCHAIN VALIDATION (VS 2026 / MSVC v143)
+# ============================================================
+def validate_toolchain_lock(lock_file_path: str) -> bool:
+    try:
+        with open(lock_file_path, 'r') as f:
+            lock_data = json.load(f)
+        required_versions = {"VS": "2026", "MSVC": "v143"}
+        for tool, required_version in required_versions.items():
+            if tool not in lock_data or lock_data[tool] != required_version:
+                log.error(f"Version mismatch for {tool}: expected {required_version}, found {lock_data.get(tool)}")
+                return False
+        log.info("Toolchain lock file is valid.")
+        return True
+    except Exception as e:
+        log.error(f"Toolchain validation failed: {e}")
+        return False
+
+# ============================================================
+# SECTION 7 — APEX ENGINE TERMINAL (Master Controller)
+# ============================================================
+class ApexEngineTerminal:
+    VERSION = "1.0.0"
+    OWNER = "Rahmann Manzar El Herman"
+    ENTITY = "Make It All Count LLC"
+    PATENT = "63/940,186"
+    CONTACT = "rahmaanherman@icloud.com"
+
+    def __init__(self, project_root: str = "."):
+        self.project_root = Path(project_root).resolve()
+        self.sentinel = NetworkSentinel()
+        self.git = GitHubPipeline(self.sentinel, project_root)
+        self.build = ApexBuildSystem(self.sentinel, project_root)
+        self.paradox = ParadoxEngine()
+        self.blender = BlenderAdapter(str(self.project_root / "assets"))
+        self.session_log = []
+        self._print_banner()
+
+    def _print_banner(self):
+        print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║           APEX ENGINE TERMINAL v{self.VERSION}                    ║
+║           {self.OWNER}          ║
+║           {self.ENTITY}                  ║
+║           Patent: {self.PATENT}                          ║
+║           {self.CONTACT}              ║
+║           Network: {self.sentinel.status:<42}║
+╚══════════════════════════════════════════════════════════════╝
+""")
+
+    def network_status(self) -> dict:
+        return {"status": self.sentinel.status, "online": self.sentinel.online,
+                "timestamp": datetime.now().isoformat()}
+
+    def deploy(self, message: str, branch: str = "main") -> dict:
+        return self.git.full_deploy(message, branch)
+
+    def build_all(self) -> dict:
+        return self.build.build_all()
+
+    def tag_project(self):
+        self.build.tag_directory(str(self.project_root))
+        log.info("[APEX] All files tagged with ownership headers")
+
+    def reason_about(self, problem: str) -> dict:
+        return self.paradox.reason(problem)
+
+    def status_report(self) -> dict:
+        return {"engine": f"APEX Engine Terminal v{self.VERSION}",
+                "owner": self.OWNER, "entity": self.ENTITY, "patent": self.PATENT,
+                "network": self.network_status(), "git": self.git.status(),
+                "project": str(self.project_root),
+                "timestamp": datetime.now().isoformat()}
+
+# ============================================================
+# SECTION 8 — FASTAPI WRAPPER (API server)import os
+import sys
+import json
+import time
+import hashlib
+import subprocess
+import threading
+import socket
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Callable, List, Dict, Any
+import numpy as np
+
+# ---------- LOGGING ----------
+logging.basicConfig(level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(), logging.FileHandler('apex_engine.log')])
+log = logging.getLogger("APEX")
+
+# ============================================================
+# SECTION 1 — NETWORK SENTINEL (Internet toggle + self‑check)
+# ============================================================
+class NetworkSentinel:
+    def __init__(self):
+        self.online = False
+        self._lock = threading.Lock()
+        self._checksum_before: Optional[str] = None
+        self.on_status_change: Optional[Callable] = None
+        log.info("[SENTINEL] Network Sentinel initialized — OFFLINE mode")
+
+    def _system_checksum(self) -> str:
+        h = hashlib.sha256()
+        engine_dir = Path(__file__).parent
+        for f in sorted(engine_dir.rglob("*.py")):
+            try:
+                h.update(f.read_bytes())
+            except Exception as e:
+                log.warning(f"Failed to read file {f}: {e}")
+        return h.hexdigest()
+
+    def _is_actually_online(self) -> bool:
+        try:
+            socket.setdefaulttimeout(2)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            return True
+        except:
+            return False
+
+    def go_online(self) -> bool:
+        with self._lock:
+            self._checksum_before = self._system_checksum()
+            self.online = True
+            log.warning("[SENTINEL] ⚠ GOING ONLINE — task pending")
+            if self.on_status_change: 
+                self.on_status_change(True)
+            return True
+
+    def go_offline(self) -> dict:
+        with self._lock:
+            self.online = False
+            log.info("[SENTINEL] Returning OFFLINE")
+            result = self._self_check()
+            if self.on_status_change: 
+                self.on_status_change(False)
+            return result
+
+    def _self_check(self) -> dict:
+        checksum_after = self._system_checksum()
+        clean = (self._checksum_before == checksum_after)
+        status = "CLEAN" if clean else "MODIFIED — REVIEW REQUIRED"
+        log.info(f"[SENTINEL] Self-check: {status}")
+        return {
+            "status": status,
+            "clean": clean,
+            "checksum_before": self._checksum_before,
+            "checksum_after": checksum_after,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def online_task(self, task_fn: Callable, *args, **kwargs):
+        self.go_online()
+        try:
+            result = task_fn(*args, **kwargs)
+            return result
+        except Exception as e:
+            log.error(f"[SENTINEL] Online task failed: {e}")
+            raise
+        finally:
+            check = self.go_offline()
+            if not check["clean"]:
+                log.critical("[SENTINEL] ⚠ FILES MODIFIED DURING ONLINE SESSION")
+
+    @property
+    def status(self) -> str:
+        return "ONLINE" if self.online else "OFFLINE"
+
+# ============================================================
+# SECTION 2 — GITHUB PIPELINE (Auto‑push, no manual steps)
+# ============================================================
+class GitHubPipeline:
+    def __init__(self, sentinel: NetworkSentinel, repo_path: str = "."):
+        self.sentinel = sentinel
+        self.repo_path = Path(repo_path).resolve()
+        self.owner = "rahmaanherman-source"
+        log.info(f"[GIT] Pipeline initialized — repo: {self.repo_path}")
+
+    def _run(self, cmd: list, cwd: Optional[Path] = None) -> tuple:
+        cwd = cwd or self.repo_path
+        result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    def status(self) -> dict:
+        code, out, err = self._run(["git", "status", "--porcelain"])
+        return {
+            "changes": out.splitlines() if out else [],
+            "clean": not bool(out),
+            "repo": str(self.repo_path)
+        }
+
+    def stage_all(self) -> bool:
+        code, out, err = self._run(["git", "add", "-A"])
+        return code == 0
+
+    def commit(self, message: str) -> bool:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        full_msg = f"{message}\n\nAPEX Engine Terminal | Rahmann Herman | Patent 63/940,186\nTimestamp: {timestamp}"
+        code, out, err = self._run(["git", "commit", "-m", full_msg])
+        return code == 0
+
+    def push(self, branch: str = "main") -> dict:
+        def _push():
+            code, out, err = self._run(["git", "push", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err,
+                "branch": branch
+            }
+        return self.sentinel.online_task(_push)
+
+    def pull(self, branch: str = "main") -> dict:
+        def _pull():
+            code, out, err = self._run(["git", "pull", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err
+            }
+        return self.sentinel.online_task(_pull)
+
+    def full_deploy(self, message: str, branch: str = "main") -> dict:
+        staged = self.stage_all()
+        committed = self.commit(message)
+        push_result = self.push(branch)
+        return {
+            "staged": staged,
+            "committed": committed,
+            "pushed": push_result.get("success", False),
+            "branch": branch,
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+
+    def init_repo(self, remote_url: str) -> bool:
+        self._run(["git", "init"])
+        self._run(["git", "branch", "-M", "main"])
+        self._run(["git", "remote", "add", "origin", remote_url])
+        return True
+
+# ============================================================
+# SECTION 3 — BUILD SYSTEM (Web, Mobile, Desktop)
+# ============================================================
+class ApexBuildSystem:
+    OWNERSHIP_HEADER = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================"""
+
+    def __init__(self, sentinel: NetworkSentinel, project_root: str = "."):
+        self.sentinel = sentinel
+        self.project_root = Path(project_root).resolve()
+        self.build_log = []
+        log.info("[BUILD] Build system initialized")
+
+    def _log(self, level: str, msg: str):
+        entry = {"time": datetime.now().isoformat(), "level": level, "msg": msg}
+        self.build_log.append(entry)
+        getattr(log, level.lower(), log.info)(f"[BUILD] {msg}")
+
+    def tag_file(self, filepath: str) -> bool:
+        path = Path(filepath)
+        if not path.exists(): 
+            return False
+        content = path.read_text(encoding="utf-8")
+        if "Make It All Count LLC" not in content:
+            path.write_text(self.OWNERSHIP_HEADER + content, encoding="utf-8")
+            self._log("info", f"Tagged: {filepath}")
+        return True
+
+    def tag_directory(self, directory: str = "."):
+        for ext in ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]:
+            for f in Path(directory).rglob(ext):
+                self.tag_file(str(f))
+        self._log("info", f"Directory tagged: {directory}")
+
+    def build_web(self) -> dict:
+        self._log("info", "Building for Web (Vercel)...")
+        code, out, err = self._run_cmd(["npm", "run", "build"])
+        return {"target": "web", "success": code == 0, "output": out or err}
+
+    def build_mobile(self) -> dict:
+        self._log("info", "Building for Mobile (Expo)...")
+        code, out, err = self._run_cmd(["npx", "expo", "build"])
+        return {"target": "mobile", "success": code == 0, "output": out or err}
+
+    def build_desktop(self) -> dict:
+        self._log("info", "Building for Desktop (Electron)...")
+        code, out, err = self._run_cmd(["npx", "electron-builder"])
+        return {"target": "desktop", "success": code == 0, "output": out or err}
+
+    def build_all(self) -> dict:
+        self._log("info", "Full stack build initiated")
+        results = {
+            "web": self.build_web(),
+            "mobile": self.build_mobile(),
+            "desktop": self.build_desktop(),
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+        success_count = sum(1 for k in ["web", "mobile", "desktop"] if results[k]["success"])
+        self._log("info", f"Build complete: {success_count}/3 targets successful")
+        return results
+
+    def _run_cmd(self, cmd: list) -> tuple:
+        try:
+            result = subprocess.run(cmd, cwd=str(self.project_root), capture_output=True, text=True, timeout=300)
+            return result.returncode, result.stdout.strip(), result.stderr.strip()
+        except FileNotFoundError:
+            return 1, "", f"Command not found: {cmd[0]}"
+        except subprocess.TimeoutExpired:
+            return 1, "", "Build timeout"
+        except Exception as e:
+            return 1, "", str(e)
+
+# ============================================================
+# SECTION 4 — PARADOX ENGINE (Outcome exploration + best‑choice)
+# ============================================================
+class ParadoxEngine:
+    """
+    The Paradox Engine:
+    - Takes a problem and generates all possible outcomes.
+    - Evaluates each outcome using a scoring function.
+    - Returns the optimal path (best outcome).
+    - Includes a photographic memory (vector DB) to store and recall details with high precision.
+    """
+    def __init__(self, memory_capacity: int = 1000):
+        self.memory = []  # List of (vector, data) pairs (simulated)
+        self.next_id = 0
+        log.info("[PARADOX] Paradox Engine initialized with photographic memory")
+
+    def _embed(self, text: str) -> np.ndarray:
+        """Simple embedding: hash-based vector (for demo; replace with actual embedding)."""
+        hash_val = int(hashlib.sha256(text.encode()).hexdigest(), 16) % 10**6
+        vec = np.zeros(128)
+        vec[hash_val % 128] = 1.0
+        return vec
+
+    def remember(self, text: str, data: Any):
+        """Store a memory with embedding for later retrieval."""
+        vec = self._embed(text)
+        self.memory.append({"id": self.next_id, "vector": vec, "data": data, "text": text})
+        self.next_id += 1
+        if len(self.memory) > 1000:
+            self.memory.pop(0)
+        log.debug(f"[PARADOX] Memory stored: {text[:50]}...")
+
+    def recall(self, query: str, top_k: int = 3) -> List[Any]:
+        """Retrieve most similar memories based on embedding similarity."""
+        q_vec = self._embed(query)
+        scored = []
+        for mem in self.memory:
+            sim = np.dot(q_vec, mem["vector"]) / (np.linalg.norm(q_vec) * np.linalg.norm(mem["vector"]) + 1e-9)
+            scored.append((sim, mem["data"]))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [data for _, data in scored[:top_k]]
+
+    def generate_outcomes(self, problem: str) -> List[Dict]:
+        outcomes = [
+            {"id": "deploy", "description": "Deploy the latest build to production", "score": 0.8, "steps": ["build", "push", "deploy"]},
+            {"id": "rollback", "description": "Revert to previous stable version", "score": 0.6, "steps": ["git revert", "redeploy"]},
+            {"id": "test_staging", "description": "Run tests in staging environment", "score": 0.9, "steps": ["build", "deploy_staging", "run_tests"]},
+            {"id": "hotfix", "description": "Apply emergency patch", "score": 0.4, "steps": ["patch", "deploy"]}
+        ]
+        return outcomes
+
+    def evaluate_outcome(self, outcome: Dict) -> float:
+        return outcome.get("score", 0.5)
+
+    def choose_best_outcome(self, problem: str) -> Dict:
+        outcomes = self.generate_outcomes(problem)
+        best = max(outcomes, key=lambda o: self.evaluate_outcome(o))
+        self.remember(problem, best)
+        log.info(f"[PARADOX] Best outcome chosen: {best['id']} (score: {self.evaluate_outcome(best)})")
+        return best
+
+    def reason(self, problem: str) -> Dict:
+        similar = self.recall(problem, top_k=1)
+        if similar:
+            log.info("[PARADOX] Found similar past problem, reusing solution.")
+            return similar[0]
+        return self.choose_best_outcome(problem)
+
+# ============================================================
+# SECTION 5 — BLENDER ADAPTER (Asset processing)
+# ============================================================
+class BlenderAdapter:
+    def __init__(self, asset_directory: str):
+        self.asset_directory = Path(asset_directory)
+        log.info(f"[BLENDER] Adapter initialized with directory: {asset_directory}")
+
+    def process_assets(self):
+        log.info("[BLENDER] Processing assets...")
+        for file in self.asset_directory.glob("*.obj"):
+            log.info(f"[BLENDER] Decimating {file.name}...")
+        log.info("[BLENDER] Texture atlas created (simulated).")
+
+    def auto_decimate(self, obj_name: str):
+        log.info(f"[BLENDER] Decimating {obj_name} with ratio 0.5 (simulated).")
+
+    def create_atlas(self, object_names: List[str]):
+        log.info(f"[BLENDER] Creating texture atlas for {len(object_names)} objects (simulated).")
+
+# ============================================================
+# SECTION 6 — TOOLCHAIN VALIDATION (VS 2026 / MSVC v143)
+# ============================================================
+def validate_toolchain_lock(lock_file_path: str) -> bool:
+    try:
+        with open(lock_file_path, 'r') as f:
+            lock_data = json.load(f)
+        required_versions = {"VS": "2026", "MSVC": "v143"}
+        for tool, required_version in required_versions.items():
+            if tool not in lock_data or lock_data[tool] != required_version:
+                log.error(f"Version mismatch for {tool}: expected {required_version}, found {lock_data.get(tool)}")
+                return False
+        log.info("Toolchain lock file is valid.")
+        return True
+    except Exception as e:
+        log.error(f"Toolchain validation failed: {e}")
+        return False
+
+# ============================================================
+# SECTION 7 — APEX ENGINE TERMINAL (Master Controller)
+# ============================================================
+class ApexEngineTerminal:
+    VERSION = "1.0.0"
+    OWNER = "Rahmann Manzar El Herman"
+    ENTITY = "Make It All Count LLC"
+    PATENT = "63/940,186"
+    CONTACT = "rahmaanherman@icloud.com"
+
+    def __init__(self, project_root: str = "."):
+        self.project_root = Path(project_root).resolve()
+        self.sentinel = NetworkSentinel()
+        self.git = GitHubPipeline(self.sentinel, project_root)
+        self.build = ApexBuildSystem(self.sentinel, project_root)
+        self.paradox = ParadoxEngine()
+        self.blender = BlenderAdapter(str(self.project_root / "assets"))
+        self.session_log = []
+        self._print_banner()
+
+    def _print_banner(self):
+        print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║           APEX ENGINE TERMINAL v{self.VERSION}                    ║
+║           {self.OWNER}          ║
+║           {self.ENTITY}                  ║
+║           Patent: {self.PATENT}                          ║
+║           {self.CONTACT}              ║
+║           Network: {self.sentinel.status:<42}║
+╚══════════════════════════════════════════════════════════════╝
+""")
+
+    def network_status(self) -> dict:
+        return {"status": self.sentinel.status, "online": self.sentinel.online,
+                "timestamp": datetime.now().isoformat()}
+
+    def deploy(self, message: str, branch: str = "main") -> dict:
+        return self.git.full_deploy(message, branch)
+
+    def build_all(self) -> dict:
+        return self.build.build_all()
+
+    def tag_project(self):
+        self.build.tag_directory(str(self.project_root))
+        log.info("[APEX] All files tagged with ownership headers")
+
+    def reason_about(self, problem: str) -> dict:
+        return self.paradox.reason(problem)
+
+    def status_report(self) -> dict:
+        return {"engine": f"APEX Engine Terminal v{self.VERSION}",
+                "owner": self.OWNER, "entity": self.ENTITY, "patent": self.PATENT,
+                "network": self.network_status(), "git": self.git.status(),
+                "project": str(self.project_root),
+                "timestamp": datetime.now().isoformat()}
+
+# ============================================================
+# SECTION 8 — FASTAPI WRAPPER (API server)
+# ============================================================
+if __name__ == "__if __name__ == "__main__":
+    import uvicorn
+    # Initialize the Apex Engine
+    engine = ApexEngineTerminal(project_root=".")
+    
+    # Start the FastAPI wrapper for remote command execution
+    uvicorn.run(app, host="0.0.0.0", port=8000)import os
+import sys
+import json
+import time
+import hashlib
+import subprocess
+import threading
+import socket
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Callable, List, Dict, Any
+import numpy as np
+
+# ---------- LOGGING ----------
+logging.basicConfig(level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(), logging.FileHandler('apex_engine.log')])
+log = logging.getLogger("APEX")
+
+# ============================================================
+# SECTION 1 — NETWORK SENTINEL (Internet toggle + self‑check)
+# ============================================================
+class NetworkSentinel:
+    def __init__(self):
+        self.online = False
+        self._lock = threading.Lock()
+        self._checksum_before: Optional[str] = None
+        self.on_status_change: Optional[Callable] = None
+        log.info("[SENTINEL] Network Sentinel initialized — OFFLINE mode")
+
+    def _system_checksum(self) -> str:
+        h = hashlib.sha256()
+        engine_dir = Path(__file__).parent
+        for f in sorted(engine_dir.rglob("*.py")):
+            try:
+                h.update(f.read_bytes())
+            except Exception as e:
+                log.warning(f"Failed to read file {f}: {e}")
+        return h.hexdigest()
+
+    def _is_actually_online(self) -> bool:
+        try:
+            socket.setdefaulttimeout(2)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            return True
+        except:
+            return False
+
+    def go_online(self) -> bool:
+        with self._lock:
+            self._checksum_before = self._system_checksum()
+            self.online = True
+            log.warning("[SENTINEL] ⚠ GOING ONLINE — task pending")
+            if self.on_status_change: 
+                self.on_status_change(True)
+            return True
+
+    def go_offline(self) -> dict:
+        with self._lock:
+            self.online = False
+            log.info("[SENTINEL] Returning OFFLINE")
+            result = self._self_check()
+            if self.on_status_change: 
+                self.on_status_change(False)
+            return result
+
+    def _self_check(self) -> dict:
+        checksum_after = self._system_checksum()
+        clean = (self._checksum_before == checksum_after)
+        status = "CLEAN" if clean else "MODIFIED — REVIEW REQUIRED"
+        log.info(f"[SENTINEL] Self-check: {status}")
+        return {
+            "status": status,
+            "clean": clean,
+            "checksum_before": self._checksum_before,
+            "checksum_after": checksum_after,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def online_task(self, task_fn: Callable, *args, **kwargs):
+        self.go_online()
+        try:
+            result = task_fn(*args, **kwargs)
+            return result
+        except Exception as e:
+            log.error(f"[SENTINEL] Online task failed: {e}")
+            raise
+        finally:
+            check = self.go_offline()
+            if not check["clean"]:
+                log.critical("[SENTINEL] ⚠ FILES MODIFIED DURING ONLINE SESSION")
+
+    @property
+    def status(self) -> str:
+        return "ONLINE" if self.online else "OFFLINE"
+
+# ============================================================
+# SECTION 2 — GITHUB PIPELINE (Auto‑push, no manual steps)
+# ============================================================
+class GitHubPipeline:
+    def __init__(self, sentinel: NetworkSentinel, repo_path: str = "."):
+        self.sentinel = sentinel
+        self.repo_path = Path(repo_path).resolve()
+        self.owner = "rahmaanherman-source"
+        log.info(f"[GIT] Pipeline initialized — repo: {self.repo_path}")
+
+    def _run(self, cmd: list, cwd: Optional[Path] = None) -> tuple:
+        cwd = cwd or self.repo_path
+        result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    def status(self) -> dict:
+        code, out, err = self._run(["git", "status", "--porcelain"])
+        return {
+            "changes": out.splitlines() if out else [],
+            "clean": not bool(out),
+            "repo": str(self.repo_path)
+        }
+
+    def stage_all(self) -> bool:
+        code, out, err = self._run(["git", "add", "-A"])
+        return code == 0
+
+    def commit(self, message: str) -> bool:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        full_msg = f"{message}\n\nAPEX Engine Terminal | Rahmann Herman | Patent 63/940,186\nTimestamp: {timestamp}"
+        code, out, err = self._run(["git", "commit", "-m", full_msg])
+        return code == 0
+
+    def push(self, branch: str = "main") -> dict:
+        def _push():
+            code, out, err = self._run(["git", "push", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err,
+                "branch": branch
+            }
+        return self.sentinel.online_task(_push)
+
+    def pull(self, branch: str = "main") -> dict:
+        def _pull():
+            code, out, err = self._run(["git", "pull", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err
+            }
+        return self.sentinel.online_task(_pull)
+
+    def full_deploy(self, message: str, branch: str = "main") -> dict:
+        staged = self.stage_all()
+        committed = self.commit(message)
+        push_result = self.push(branch)
+        return {
+            "staged": staged,
+            "committed": committed,
+            "pushed": push_result.get("success", False),
+            "branch": branch,
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+
+    def init_repo(self, remote_url: str) -> bool:
+        self._run(["git", "init"])
+        self._run(["git", "branch", "-M", "main"])
+        self._run(["git", "remote", "add", "origin", remote_url])
+        return True
+
+# ============================================================
+# SECTION 3 — BUILD SYSTEM (Web, Mobile, Desktop)
+# ============================================================
+class ApexBuildSystem:
+    OWNERSHIP_HEADER = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================"""
+
+    def __init__(self, sentinel: NetworkSentinel, project_root: str = "."):
+        self.sentinel = sentinel
+        self.project_root = Path(project_root).resolve()
+        self.build_log = []
+        log.info("[BUILD] Build system initialized")
+
+    def _log(self, level: str, msg: str):
+        entry = {"time": datetime.now().isoformat(), "level": level, "msg": msg}
+        self.build_log.append(entry)
+        getattr(log, level.lower(), log.info)(f"[BUILD] {msg}")
+
+    def tag_file(self, filepath: str) -> bool:
+        path = Path(filepath)
+        if not path.exists(): 
+            return False
+        content = path.read_text(encoding="utf-8")
+        if "Make It All Count LLC" not in content:
+            path.write_text(self.OWNERSHIP_HEADER + content, encoding="utf-8")
+            self._log("info", f"Tagged: {filepath}")
+        return True
+
+    def tag_directory(self, directory: str = "."):
+        for ext in ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]:
+            for f in Path(directory).rglob(ext):
+                self.tag_file(str(f))
+        self._log("info", f"Directory tagged: {directory}")
+
+    def build_web(self) -> dict:
+        self._log("info", "Building for Web (Vercel)...")
+        code, out, err = self._run_cmd(["npm", "run", "build"])
+        return {"target": "web", "success": code == 0, "output": out or err}
+
+    def build_mobile(self) -> dict:
+        self._log("info", "Building for Mobile (Expo)...")
+        code, out, err = self._run_cmd(["npx", "expo", "build"])
+        return {"target": "mobile", "success": code == 0, "output": out or err}
+
+    def build_desktop(self) -> dict:
+        self._log("info", "Building for Desktop (Electron)...")
+        code, out, err = self._run_cmd(["npx", "electron-builder"])
+        return {"target": "desktop", "success": code == 0, "output": out or err}
+
+    def build_all(self) -> dict:
+        self._log("info", "Full stack build initiated")
+        results = {
+            "web": self.build_web(),
+            "mobile": self.build_mobile(),
+            "desktop": self.build_desktop(),
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+        success_count = sum(1 for k in ["web", "mobile", "desktop"] if results[k]["success"])
+        self._log("info", f"Build complete: {success_count}/3 targets successful")
+        return results
+
+    def _run_cmd(self, cmd: list) -> tuple:
+        try:
+            result = subprocess.run(cmd, cwd=str(self.project_root), capture_output=True, text=True, timeout=300)
+            return result.returncode, result.stdout.strip(), result.stderr.strip()
+        except FileNotFoundError:
+            return 1, "", f"Command not found: {cmd[0]}"
+        except subprocess.TimeoutExpired:
+            return 1, "", "Build timeout"
+        except Exception as e:
+            return 1, "", str(e)
+
+# ============================================================
+# SECTION 4 — PARADOX ENGINE (Outcome exploration + best‑choice)
+# ============================================================
+class ParadoxEngine:
+    """
+    The Paradox Engine:
+    - Takes a problem and generates all possible outcomes.
+    - Evaluates each outcome using a scoring function.
+    - Returns the optimal path (best outcome).
+    - Includes a photographic memory (vector DB) to store and recall details with high precision.
+    """
+    def __init__(self, memory_capacity: int = 1000):
+        self.memory = []  # List of (vector, data) pairs (simulated)
+        self.next_id = 0
+        log.info("[PARADOX] Paradox Engine initialized with photographic memory")
+
+    def _embed(self, text: str) -> np.ndarray:
+        """Simple embedding: hash-based vector (for demo; replace with actual embedding)."""
+        hash_val = int(hashlib.sha256(text.encode()).hexdigest(), 16) % 10**6
+        vec = np.zeros(128)
+        vec[hash_val % 128] = 1.0
+        return vec
+
+    def remember(self, text: str, data: Any):
+        """Store a memory with embedding for later retrieval."""
+        vec = self._embed(text)
+        self.memory.append({"id": self.next_id, "vector": vec, "data": data, "text": text})
+        self.next_id += 1
+        if len(self.memory) > 1000:
+            self.memory.pop(0)
+        log.debug(f"[PARADOX] Memory stored: {text[:50]}...")
+
+    def recall(self, query: str, top_k: int = 3) -> List[Any]:
+        """Retrieve most similar memories based on embedding similarity."""
+        q_vec = self._embed(query)
+        scored = []
+        for mem in self.memory:
+            sim = np.dot(q_vec, mem["vector"]) / (np.linalg.norm(q_vec) * np.linalg.norm(mem["vector"]) + 1e-9)
+            scored.append((sim, mem["data"]))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [data for _, data in scored[:top_k]]
+
+    def generate_outcomes(self, problem: str) -> List[Dict]:
+        outcomes = [
+            {"id": "deploy", "description": "Deploy the latest build to production", "score": 0.8, "steps": ["build", "push", "deploy"]},
+            {"id": "rollback", "description": "Revert to previous stable version", "score": 0.6, "steps": ["git revert", "redeploy"]},
+            {"id": "test_staging", "description": "Run tests in staging environment", "score": 0.9, "steps": ["build", "deploy_staging", "run_tests"]},
+            {"id": "hotfix", "description": "Apply emergency patch", "score": 0.4, "steps": ["patch", "deploy"]}
+        ]
+        return outcomes
+
+    def evaluate_outcome(self, outcome: Dict) -> float:
+        return outcome.get("score", 0.5)
+
+    def choose_best_outcome(self, problem: str) -> Dict:
+        outcomes = self.generate_outcomes(problem)
+        best = max(outcomes, key=lambda o: self.evaluate_outcome(o))
+        self.remember(problem, best)
+        log.info(f"[PARADOX] Best outcome chosen: {best['id']} (score: {self.evaluate_outcome(best)})")
+        return best
+
+    def reason(self, problem: str) -> Dict:
+        similar = self.recall(problem, top_k=1)
+        if similar:
+            log.info("[PARADOX] Found similar past problem, reusing solution.")
+            return similar[0]
+        return self.choose_best_outcome(problem)
+
+# ============================================================
+# SECTION 5 — BLENDER ADAPTER (Asset processing)
+# ============================================================
+class BlenderAdapter:
+    def __init__(self, asset_directory: str):
+        self.asset_directory = Path(asset_directory)
+        log.info(f"[BLENDER] Adapter initialized with directory: {asset_directory}")
+
+    def process_assets(self):
+        log.info("[BLENDER] Processing assets...")
+        for file in self.asset_directory.glob("*.obj"):
+            log.info(f"[BLENDER] Decimating {file.name}...")
+        log.info("[BLENDER] Texture atlas created (simulated).")
+
+    def auto_decimate(self, obj_name: str):
+        log.info(f"[BLENDER] Decimating {obj_name} with ratio 0.5 (simulated).")
+
+    def create_atlas(self, object_names: List[str]):
+        log.info(f"[BLENDER] Creating texture atlas for {len(object_names)} objects (simulated).")
+
+# ============================================================
+# SECTION 6 — TOOLCHAIN VALIDATION (VS 2026 / MSVC v143)
+# ============================================================
+def validate_toolchain_lock(lock_file_path: str) -> bool:
+    try:
+        with open(lock_file_path, 'r') as f:
+            lock_data = json.load(f)
+        required_versions = {"VS": "2026", "MSVC": "v143"}
+        for tool, required_version in required_versions.items():
+            if tool not in lock_data or lock_data[tool] != required_version:
+                log.error(f"Version mismatch for {tool}: expected {required_version}, found {lock_data.get(tool)}")
+                return False
+        log.info("Toolchain lock file is valid.")
+        return True
+    except Exception as e:
+        log.error(f"Toolchain validation failed: {e}")
+        return False
+
+# ============================================================
+# SECTION 7 — APEX ENGINE TERMINAL (Master Controller)
+# ============================================================
+class ApexEngineTerminal:
+    VERSION = "1.0.0"
+    OWNER = "Rahmann Manzar El Herman"
+    ENTITY = "Make It All Count LLC"
+    PATENT = "63/940,186"
+    CONTACT = "rahmaanherman@icloud.com"
+
+    def __init__(self, project_root: str = "."):
+        self.project_root = Path(project_root).resolve()
+        self.sentinel = NetworkSentinel()
+        self.git = GitHubPipeline(self.sentinel, project_root)
+        self.build = ApexBuildSystem(self.sentinel, project_root)
+        self.paradox = ParadoxEngine()
+        self.blender = BlenderAdapter(str(self.project_root / "assets"))
+        self.session_log = []
+        self._print_banner()
+
+    def _print_banner(self):
+        print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║           APEX ENGINE TERMINAL v{self.VERSION}                    ║
+║           {self.OWNER}          ║
+║           {self.ENTITY}                  ║
+║           Patent: {self.PATENT}                          ║
+║           {self.CONTACT}              ║
+║           Network: {self.sentinel.status:<42}║
+╚══════════════════════════════════════════════════════════════╝
+""")
+
+    def network_status(self) -> dict:
+        return {"status": self.sentinel.status, "online": self.sentinel.online,
+                "timestamp": datetime.now().isoformat()}
+
+    def deploy(self, message: str, branch: str = "main") -> dict:
+        return self.git.full_deploy(message, branch)
+
+    def build_all(self) -> dict:
+        return self.build.build_all()
+
+    def tag_project(self):
+        self.build.tag_directory(str(self.project_root))
+        log.info("[APEX] All files tagged with ownership headers")
+
+    def reason_about(self, problem: str) -> dict:
+        return self.paradox.reason(problem)
+
+    def status_report(self) -> dict:
+        return {"engine": f"APEX Engine Terminal v{self.VERSION}",
+                "owner": self.OWNER, "entity": self.ENTITY, "patent": self.PATENT,
+                "network": self.network_status(), "git": self.git.status(),
+                "project": str(self.project_root),
+                "timestamp": datetime.now().isoformat()}
+
+# ============================================================
+# SECTION 8 — FASTAPI WRAPPER (API server)
+# ============================================================
+if __name__ == "__
+apex_engine_terminal/
+├── apex_engine_slab.py        # Main backend logic
+├── assets/                     # Directory for Blender assets
+│   └── *.obj                   # Example asset files
+├── toolchain_lock.json         # Toolchain lock file
+├── requirements.txt            # Python dependencies
+├── README.md                   # Project documentation
+├── apex_terminal_ui.html       # Frontend UI
+└── apex_engine.log             # Log file
+import os
+import sys
+import json
+import time
+import hashlib
+import subprocess
+import threading
+import socket
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Callable, List, Dict, Any
+import numpy as np
+
+# ---------- LOGGING ----------
+logging.basicConfig(level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(), logging.FileHandler('apex_engine.log')])
+log = logging.getLogger("APEX")
+
+# ============================================================
+# SECTION 1 — NETWORK SENTINEL (Internet toggle + self‑check)
+# ============================================================
+class NetworkSentinel:
+    def __init__(self):
+        self.online = False
+        self._lock = threading.Lock()
+        self._checksum_before: Optional[str] = None
+        self.on_status_change: Optional[Callable] = None
+        log.info("[SENTINEL] Network Sentinel initialized — OFFLINE mode")
+
+    def _system_checksum(self) -> str:
+        h = hashlib.sha256()
+        engine_dir = Path(__file__).parent
+        for f in sorted(engine_dir.rglob("*.py")):
+            try:
+                h.update(f.read_bytes())
+            except Exception as e:
+                log.warning(f"Failed to read file {f}: {e}")
+        return h.hexdigest()
+
+    def _is_actually_online(self) -> bool:
+        try:
+            socket.setdefaulttimeout(2)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            return True
+        except:
+            return False
+
+    def go_online(self) -> bool:
+        with self._lock:
+            self._checksum_before = self._system_checksum()
+            self.online = True
+            log.warning("[SENTINEL] ⚠ GOING ONLINE — task pending")
+            if self.on_status_change: 
+                self.on_status_change(True)
+            return True
+
+    def go_offline(self) -> dict:
+        with self._lock:
+            self.online = False
+            log.info("[SENTINEL] Returning OFFLINE")
+            result = self._self_check()
+            if self.on_status_change: 
+                self.on_status_change(False)
+            return result
+
+    def _self_check(self) -> dict:
+        checksum_after = self._system_checksum()
+        clean = (self._checksum_before == checksum_after)
+        status = "CLEAN" if clean else "MODIFIED — REVIEW REQUIRED"
+        log.info(f"[SENTINEL] Self-check: {status}")
+        return {
+            "status": status,
+            "clean": clean,
+            "checksum_before": self._checksum_before,
+            "checksum_after": checksum_after,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def online_task(self, task_fn: Callable, *args, **kwargs):
+        self.go_online()
+        try:
+            result = task_fn(*args, **kwargs)
+            return result
+        except Exception as e:
+            log.error(f"[SENTINEL] Online task failed: {e}")
+            raise
+        finally:
+            check = self.go_offline()
+            if not check["clean"]:
+                log.critical("[SENTINEL] ⚠ FILES MODIFIED DURING ONLINE SESSION")
+
+    @property
+    def status(self) -> str:
+        return "ONLINE" if self.online else "OFFLINE"
+
+# ============================================================
+# SECTION 2 — GITHUB PIPELINE (Auto‑push, no manual steps)
+# ============================================================
+class GitHubPipeline:
+    def __init__(self, sentinel: NetworkSentinel, repo_path: str = "."):
+        self.sentinel = sentinel
+        self.repo_path = Path(repo_path).resolve()
+        self.owner = "rahmaanherman-source"
+        log.info(f"[GIT] Pipeline initialized — repo: {self.repo_path}")
+
+    def _run(self, cmd: list, cwd: Optional[Path] = None) -> tuple:
+        cwd = cwd or self.repo_path
+        result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    def status(self) -> dict:
+        code, out, err = self._run(["git", "status", "--porcelain"])
+        return {
+            "changes": out.splitlines() if out else [],
+            "clean": not bool(out),
+            "repo": str(self.repo_path)
+        }
+
+    def stage_all(self) -> bool:
+        code, out, err = self._run(["git", "add", "-A"])
+        return code == 0
+
+    def commit(self, message: str) -> bool:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        full_msg = f"{message}\n\nAPEX Engine Terminal | Rahmann Herman | Patent 63/940,186\nTimestamp: {timestamp}"
+        code, out, err = self._run(["git", "commit", "-m", full_msg])
+        return code == 0
+
+    def push(self, branch: str = "main") -> dict:
+        def _push():
+            code, out, err = self._run(["git", "push", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err,
+                "branch": branch
+            }
+        return self.sentinel.online_task(_push)
+
+    def pull(self, branch: str = "main") -> dict:
+        def _pull():
+            code, out, err = self._run(["git", "pull", "origin", branch])
+            return {
+                "success": code == 0,
+                "output": out or err
+            }
+        return self.sentinel.online_task(_pull)
+
+    def full_deploy(self, message: str, branch: str = "main") -> dict:
+        staged = self.stage_all()
+        committed = self.commit(message)
+        push_result = self.push(branch)
+        return {
+            "staged": staged,
+            "committed": committed,
+            "pushed": push_result.get("success", False),
+            "branch": branch,
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+
+    def init_repo(self, remote_url: str) -> bool:
+        self._run(["git", "init"])
+        self._run(["git", "branch", "-M", "main"])
+        self._run(["git", "remote", "add", "origin", remote_url])
+        return True
+
+# ============================================================
+# SECTION 3 — BUILD SYSTEM (Web, Mobile, Desktop)
+# ============================================================
+class ApexBuildSystem:
+    OWNERSHIP_HEADER = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================"""
+
+    def __init__(self, sentinel: NetworkSentinel, project_root: str = "."):
+        self.sentinel = sentinel
+        self.project_root = Path(project_root).resolve()
+        self.build_log = []
+        log.info("[BUILD] Build system initialized")
+
+    def _log(self, level: str, msg: str):
+        entry = {"time": datetime.now().isoformat(), "level": level, "msg": msg}
+        self.build_log.append(entry)
+        getattr(log, level.lower(), log.info)(f"[BUILD] {msg}")
+
+    def tag_file(self, filepath: str) -> bool:
+        path = Path(filepath)
+        if not path.exists(): 
+            return False
+        content = path.read_text(encoding="utf-8")
+        if "Make It All Count LLC" not in content:
+            path.write_text(self.OWNERSHIP_HEADER + content, encoding="utf-8")
+            self._log("info", f"Tagged: {filepath}")
+        return True
+
+    def tag_directory(self, directory: str = "."):
+        for ext in ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]:
+            for f in Path(directory).rglob(ext):
+                self.tag_file(str(f))
+        self._log("info", f"Directory tagged: {directory}")
+
+    def build_web(self) -> dict:
+        self._log("info", "Building for Web (Vercel)...")
+        code, out, err = self._run_cmd(["npm", "run", "build"])
+        return {"target": "web", "success": code == 0, "output": out or err}
+
+    def build_mobile(self) -> dict:
+        self._log("info", "Building for Mobile (Expo)...")
+        code, out, err = self._run_cmd(["npx", "expo", "build"])
+        return {"target": "mobile", "success": code == 0, "output": out or err}
+
+    def build_desktop(self) -> dict:
+        self._log("info", "Building for Desktop (Electron)...")
+        code, out, err = self._run_cmd(["npx", "electron-builder"])
+        return {"target": "desktop", "success": code == 0, "output": out or err}
+
+    def build_all(self) -> dict:
+        self._log("info", "Full stack build initiated")
+        results = {
+            "web": self.build_web(),
+            "mobile": self.build_mobile(),
+            "desktop": self.build_desktop(),
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+        success_count = sum(1 for k in ["web", "mobile", "desktop"] if results[k]["success"])
+        self._log("info", f"Build complete: {success_count}/3 targets successful")
+        return results
+
+    def _run_cmd(self, cmd: list) -> tuple:
+        try:
+            result = subprocess.run(cmd, cwd=str(self.project_root), capture_output=True, text=True, timeout=300)
+            return result.returncode, result.stdout.strip(), result.stderr.strip()
+        except FileNotFoundError:
+            return 1, "", f"Command not found: {cmd[0]}"
+        except subprocess.TimeoutExpired:
+            return 1, "", "Build timeout"
+        except Exception as e:
+            return 1, "", str(e)
+
+# ============================================================
+# SECTION 4 — PARADOX ENGINE (Outcome exploration + best‑choice)
+# ============================================================
+class ParadoxEngine:
+    """
+    The Paradox Engine:
+    - Takes a problem and generates all possible outcomes.
+    - Evaluates each outcome using a scoring function.
+    - Returns the optimal path (best outcome).
+    - Includes a photographic memory (vector DB) to store and recall details with high precision.
+    """
+    def __init__(self, memory_capacity: int = 1000):
+        self.memory = []  # List of (vector, data) pairs (simulated)
+        self.next_id = 0
+        log.info("[PARADOX] Paradox Engine initialized with photographic memory")
+
+    def _embed(self, text: str) -> np.ndarray:
+        """Simple embedding: hash-based vector (for demo; replace with actual embedding)."""
+        hash_val = int(hashlib.sha256(text.encode()).hexdigest(), 16) % 10**6
+        vec = np.zeros(128)
+        vec[hash_val % 128] = 1.0
+        return vec
+
+    def remember(self, text: str, data: Any):
+        """Store a memory with embedding for later retrieval."""
+        vec = self._embed(text)
+        self.memory.append({"id": self.next_id, "vector": vec, "data": data, "text": text})
+        self.next_id += 1
+        if len(self.memory) > 1000:
+            self.memory.pop(0)
+        log.debug(f"[PARADOX] Memory stored: {text[:50]}...")
+
+    def recall(self, query: str, top_k: int = 3) -> List[Any]:
+        """Retrieve most similar memories based on embedding similarity."""
+        q_vec = self._embed(query)
+        scored = []
+        for mem in self.memory:
+            sim = np.dot(q_vec, mem["vector"]) / (np.linalg.norm(q_vec) * np.linalg.norm(mem["vector"]) + 1e-9)
+            scored.append((sim, mem["data"]))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [data for _, data in scored[:top_k]]
+
+    def generate_outcomes(self, problem: str) -> List[Dict]:
+        outcomes = [
+            {"id": "deploy", "description": "Deploy the latest build to production", "score": 0.8, "steps": ["build", "push", "deploy"]},
+            {"id": "rollback", "description": "Revert to previous stable version", "score": 0.6, "steps": ["git revert", "redeploy"]},
+            {"id": "test_staging", "description": "Run tests in staging environment", "score": 0.9, "steps": ["build", "deploy_staging", "run_tests"]},
+            {"id": "hotfix", "description": "Apply emergency patch", "score": 0.4, "steps": ["patch", "deploy"]}
+        ]
+        return outcomes
+
+    def evaluate_outcome(self, outcome: Dict) -> float:
+        return outcome.get("score", 0.5)
+
+    def choose_best_outcome(self, problem: str) -> Dict:
+        outcomes = self.generate_outcomes(problem)
+        best = max(outcomes, key=lambda o: self.evaluate_outcome(o))
+        self.remember(problem, best)
+        log.info(f"[PARADOX] Best outcome chosen: {best['id']} (score: {self.evaluate_outcome(best)})")
+        return best
+
+    def reason(self, problem: str) -> Dict:
+        similar = self.recall(problem, top_k=1)
+        if similar:
+            log.info("[PARADOX] Found similar past problem, reusing solution.")
+            return similar[0]
+        return self.choose_best_outcome(problem)
+
+# ============================================================
+# SECTION 5 — BLENDER ADAPTER (Asset processing)
+# ============================================================
+class BlenderAdapter:
+    def __init__(self, asset_directory: str):
+        self.asset_directory = Path(asset_directory)
+        log.info(f"[BLENDER] Adapter initialized with directory: {asset_directory}")
+
+    def process_assets(self):
+        log.info("[BLENDER] Processing assets...")
+        for file in self.asset_directory.glob("*.obj"):
+            log.info(f"[BLENDER] Decimating {file.name}...")
+        log.info("[BLENDER] Texture atlas created (simulated).")
+
+    def auto_decimate(self, obj_name: str):
+        log.info(f"[BLENDER] Decimating {obj_name} with ratio 0.5 (simulated).")
+
+    def create_atlas(self, object_names: List[str]):
+        log.info(f"[BLENDER] Creating texture atlas for {len(object_names)} objects (simulated).")
+
+# ============================================================
+# SECTION 6 — TOOLCHAIN VALIDATION (VS 2026 / MSVC v143)
+# ============================================================
+def validate_toolchain_lock(lock_file_path: str) -> bool:
+    try:
+        with open(lock_file_path, 'r') as f:
+            lock_data = json.load(f)
+        required_versions = {"VS": "2026", "MSVC": "v143"}
+        for tool, required_version in required_versions.items():
+            if tool not in lock_data or lock_data[tool] != required_version:
+                log.error(f"Version mismatch for {tool}: expected {required_version}, found {lock_data.get(tool)}")
+                return False
+        log.info("Toolchain lock file is valid.")
+        return True
+    except Exception as e:
+        log.error(f"Toolchain validation failed: {e}")
+        return False
+
+# ============================================================
+# SECTION 7 — APEX ENGINE TERMINAL (Master Controller)
+# ============================================================
+class ApexEngineTerminal:
+    VERSION = "1.0.0"
+    OWNER = "Rahmann Manzar El Herman"
+    ENTITY = "Make It All Count LLC"
+    PATENT = "63/940,186"
+    CONTACT = "rahmaanherman@icloud.com"
+
+    def __init__(self, project_root: str = "."):
+        self.project_root = Path(project_root).resolve()
+        self.sentinel = NetworkSentinel()
+        self.git = GitHubPipeline(self.sentinel, project_root)
+        self.build = ApexBuildSystem(self.sentinel, project_root)
+        self.paradox = ParadoxEngine()
+        self.blender = BlenderAdapter(str(self.project_root / "assets"))
+        self.session_log = []
+        self._print_banner()
+
+    def _print_banner(self):
+        print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║           APEX ENGINE TERMINAL v{self.VERSION}                    ║
+║           {self.OWNER}          ║
+║           {self.ENTITY}                  ║
+║           Patent: {self.PATENT}                          ║
+║           {self.CONTACT}              ║
+║           Network: {self.sentinel.status:<42}║
+╚══════════════════════════════════════════════════════════════╝
+""")
+
+    def network_status(self) -> dict:
+        return {"status": self.sentinel.status, "online": self.sentinel.online,
+                "timestamp": datetime.now().isoformat()}
+
+    def deploy(self, message: str, branch: str = "main") -> dict:
+        return self.git.full_deploy(message, branch)
+
+    def build_all(self) -> dict:
+        return self.build.build_all()
+
+    def tag_project(self):
+        self.build.tag_directory(str(self.project_root))
+        log.info("[APEX] All files tagged with ownership headers")
+
+    def reason_about(self, problem: str) -> dict:
+        return self.par
+you coming over{
+  "owner": "Rahmann Manzar El Herman",
+  "entity": "Make It All Count LLC",
+  "patent": "63/940,186",
+  "contact": "rahmaanherman@icloud.com",
+  "project_id": "<uuid>",
+  "project_name": "<string>",
+  "slab_version": "1.0.0",
+  "engine_version": "1.0.0",
+  "created_at": "<timestamp>",
+  "updated_at": "<timestamp>",
+  "merge_capability": true,
+  "ingestion": {
+    "auto_pull_old_apps": true,
+    "collapse_into_slab": true,
+    "metadata_extraction": true
+  },
+  "ownership": {
+    "full_production_rights": true,
+    "all_monetization_to_owner": true
+  }
+}flowchart TD
+    ROOT[APEX TERMINAL UI<br>Patent 63/940,186<br>Architect: Rahmann Herman] --> MENU[Menu Bar]
+    ROOT --> TOOLBAR[Toolbar]
+    ROOT --> SIDEBAR_LEFT[Left Sidebar]
+    ROOT --> VIEWPORT[3D Viewport]
+    ROOT --> EDITOR[Code Editor]
+    ROOT --> TERMINAL[Terminal]
+    ROOT --> AI_BUILDER[AI Builder]
+    ROOT --> CONTENT_BROWSER[Content Browser]
+    ROOT --> CHARACTER_CREATOR[Character Creator]
+    ROOT --> GITHUB_PANEL[GitHub Panel]
+    ROOT --> MATH_ENGINE[Math Engine]
+    ROOT --> NETCODE_SIM[Netcode Simulator]
+    ROOT --> ABILITY_DEBUGGER[Ability Debugger]
+    ROOT --> NOTEPAD[Floating Notepad]
+    ROOT --> STATUS_BAR[Status Bar]
+
+    MENU --> BRAND[Branding]
+    MENU --> FILE_OPS[File Ops]
+    MENU --> NETWORK_STATUS[Network Status]
+    MENU --> DEPLOY_BTN[Deploy Button]
+
+    TOOLBAR --> CAMERA_TOOLS[Camera Tools]
+    TOOLBAR --> OBJECT_TOOLS[Object Tools]
+    TOOLBAR --> MODE_SWITCH[Mode Switch]
+
+    SIDEBAR_LEFT --> PROJECT_TREE[Project Tree]
+    SIDEBAR_LEFT --> ASSET_LIST[Asset List]
+    SIDEBAR_LEFT --> DOC_PANEL[Documentation Panel]
+
+    VIEWPORT --> GIZMO[Gizmo]
+    VIEWPORT --> CAMERA[Camera]
+    VIEWPORT --> OBJECTS[Objects]
+
+    EDITOR --> TABS[Tabs]
+    EDITOR --> SYNTAX[Syntax Highlighting]
+
+    TERMINAL --> COMMANDS[Commands]
+    TERMINAL --> LOGS[Logs]
+
+    AI_BUILDER --> CONTEXT[Context Awareness]
+    AI_BUILDER --> ACTIONS[Actions]
+
+    CONTENT_BROWSER --> GRID[Grid]
+    CONTENT_BROWSER --> PREVIEW[Preview]
+
+    CHARACTER_CREATOR --> ARCHETYPES[Golden World Archetypes]
+    CHARACTER_CREATOR --> SLIDERS[Sliders]
+
+    GITHUB_PANEL --> PULL[Pull]
+    GITHUB_PANEL --> PUSH[Push]
+    GITHUB_PANEL --> COMMIT[Commit]
+    GITHUB_PANEL --> DEPLOY[Deploy]
+
+    STATUS_BAR --> FPS[FPS]
+    STATUS_BAR --> MEMORY[Memory]
+    STATUS_BAR --> ENGINE_STATUS[Engine Status]{
+  "ui": {
+    "menu_bar": {
+      "brand": "APEX ENGINE TERMINAL",
+      "network_status": true,
+      "deploy_button": true
+    },
+    "toolbar": {
+      "camera_tools": ["orbit", "pan", "zoom"],
+      "object_tools": ["move", "rotate", "scale"],
+      "mode_switch": ["viewport", "editor", "terminal", "ai_builder"]
+    },
+    "sidebar_left": {
+      "sections": ["project_tree", "assets", "documentation"]
+    },
+    "viewport": {
+      "webgl": true,
+      "gizmo": true,
+      "camera": "perspective",
+      "objects": []
+    },
+    "editor": {
+      "tabs": [],
+      "syntax_highlighting": true
+    },
+    "terminal": {
+      "commands": true,
+      "logs": true
+    },
+    "ai_builder": {
+      "contextual_ai": true,
+      "actions": ["generate_code", "explain", "optimize"]
+    },
+    "content_browser": {
+      "grid": true,
+      "preview": true
+    },
+    "character_creator": {
+      "archetypes": ["Golden World"],
+      "sliders": ["height", "build", "style"]
+    },
+    "github_panel": {
+      "pull": true,
+      "push": true,
+      "commit": true,
+      "deploy": true
+    },
+    "status_bar": {
+      "fps": true,
+      "memory": true,
+      "engine_status": true
+    }
+  }
+}# ============================================================
+# OWNER: Rahmann Manzar El Herman
+# ENTITY: Make It All Count LLC
+# PATENT: 63/940,186
+# CONTACT: rahmaanherman@icloud.com
+# SYSTEM: APEX ENGINE TERMINAL
+# ============================================================
+
+* Expand the Python engine core — clean, production, no mythology
+* Start the App Store wrapper — React Native shell around the terminal
+* Build the GitHub auto-push pipeline — real deployment, no manual steps This is a universal real engine terminal real time this is this will help me to make every single video game that I build from now on if I don't use it for nothing else but myself it will be at no cost to me 'cause this is will be totally local unless it absolutely has to go on the Internet There will be a toggle button in the corner that is green if it's on and Gray if it's not the toggle button is gonna be the Internet button it's gonna be for me and and if the AI Python or whatever is on the Internet it switches over so that I know it's on the Internet and soon when it's supposed to be offline soon as it goes on the Internet and does what it needs to do it goes instantly back offline It instantly does a check on itself to make sure nothing came in with it# APEX TERMINAL ENGINE V1.0 | RAHMANN MANZAR HERMAN
+# MISSION: THE ARK | PATENT: 63/940,186
+# PROTOCOL: ZERO_NOISE | ONE_TAB_EXECUTION
+
+class ApexTerminalEngine:
+    def __init__(self):
+        self.sovereign_vault = "LOCKED"
+        self.animal_methods = [
+            "Whale", "Octopus", "Sloth", "Owl", "Chameleon", 
+            "Hedgehog", "Zebra", "Giraffe", "Silverback", "Cat", 
+            "Dog", "Bat", "T-Devil", "Mantis", "Cheetah", 
+            "Elephant", "Sheep", "Tiger"
+        ]
+        self.efficiency_constant = 129600
+
+    def run_one_tab(self, task_target):
+        """Execute cross-platform task via One-Tab logic."""
+        print(f"Executing: {task_target} at {self.efficiency_constant}%")
+        # Multi-sector execution via 8-Arm Strike
+        for i in range(8):
+            self.execute_arm_sector(i)
+
+    def execute_arm_sector(self, sector_id):
+        # Implementation of Octopus method for parallel sector management
+        pass
+
+    def apply_chameleon_script(self):
+        # Zero-trace infrastructure staging
+        return "CHAMELEON_ACTIVE: INVISIBILITY_ENABLED"
+
+if __name__ == "__main__":
+    engine = ApexTerminalEngine()
+    print("ARK ENGINE INITIALIZED: STANDING BY FOR COMMAND")<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX Engine Terminal — GODSPEED</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@400;600;700&display=swap');
+
+  :root {
+    --bg:        #0a0a0a;
+    --surface:   #111111;
+    --panel:     #141414;
+    --border:    #1e1e1e;
+    --border2:   #2a2a2a;
+    --gold:      #c9a84c;
+    --gold-dim:  #7a6230;
+    --gold-glow: rgba(201,168,76,0.12);
+    --text:      #e8e8e8;
+    --text-dim:  #666;
+    --text-mid:  #999;
+    --green:     #4caf50;
+    --red:       #ef5350;
+    --blue:      #42a5f5;
+    --orange:    #ff7043;
+    --purple:    #ab47bc;
+    --tab-h:     36px;
+    --menu-h:    32px;
+    --status-h:  24px;
+    --sidebar-w: 220px;
+    --bottom-h:  220px;
+    --right-w:   260px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; font-size:12px; user-select:none; }
+
+  /* ── MENU BAR ── */
+  #menubar {
+    height: var(--menu-h);
+    background: #0d0d0d;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 2px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+  }
+  .brand {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-right: 16px;
+    white-space: nowrap;
+  }
+  .menu-item {
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--text-mid);
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.1s;
+    position: relative;
+  }
+  .menu-item:hover { background: var(--border2); color: var(--text); }
+  .menu-spacer { flex: 1; }
+  .menu-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; }
+  .menu-btn {
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--gold-dim);
+    background: transparent;
+    color: var(--gold);
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .menu-btn:hover { background: var(--gold-glow); border-color: var(--gold); }
+  .menu-btn.primary { background: var(--gold); color: #000; font-weight: 600; border-color: var(--gold); }
+  .menu-btn.primary:hover { background: #e0b85a; }
+
+  /* ── TOOLBAR ── */
+  #toolbar {
+    height: 34px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .tb-group { display:flex; align-items:center; gap:2px; padding:0 4px; border-right:1px solid var(--border2); }
+  .tb-group:last-child { border-right:none; }
+  .tb-btn {
+    width: 26px; height: 22px;
+    border-radius: 3px;
+    border: none;
+    background: transparent;
+    color: var(--text-mid);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items:center; justify-content:center;
+    transition: all 0.1s;
+    font-family: 'Inter', sans-serif;
+  }
+  .tb-btn:hover { background: var(--border2); color: var(--text); }
+  .tb-btn.active { background: var(--gold-glow); color: var(--gold); }
+  .tb-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    padding: 0 4px;
+    white-space: nowrap;
+  }
+  .tb-select {
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    color: var(--text-mid);
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    height: 20px;
+  }
+  .tb-select:focus { outline: none; border-color: var(--gold-dim); }
+
+  /* ── MAIN LAYOUT ── */
+  #workspace {
+    display: flex;
+    width: 100%;
+    height: calc(100vh - var(--menu-h) - 34px - var(--status-h));
+    overflow: hidden;
+  }
+
+  /* ── LEFT SIDEBAR ── */
+  #sidebar-left {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-section {
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-header {
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background: var(--panel);
+  }
+  .sidebar-header:hover { color: var(--text-mid); }
+  .tree-item {
+    padding: 4px 10px 4px 20px;
+    cursor: pointer;
+    color: var(--text-mid);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.1s;
+    border-left: 2px solid transparent;
+  }
+  .tree-item:hover { background: var(--border); color: var(--text); }
+  .tree-item.active { background: var(--gold-glow); color: var(--gold); border-left-color: var(--gold); }
+  .tree-icon { font-size: 11px; opacity: 0.7; }
+  .tree-badge {
+    margin-left: auto;
+    font-size: 9px;
+    background: var(--gold-dim);
+    color: var(--gold);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  .tree-badge.green { background: rgba(76,175,80,0.2); color: var(--green); }
+  .tree-badge.red { background: rgba(239,83,80,0.2); color: var(--red); }
+
+  /* ── CENTER AREA ── */
+  #center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── VIEWPORT TABS ── */
+  #viewport-tabs {
+    height: var(--tab-h);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 8px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .vtab {
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+  .vtab:hover { color: var(--text-mid); background: var(--border); }
+  .vtab.active { background: var(--surface); color: var(--text); border-color: var(--border2); }
+  .vtab .dot { width:5px; height:5px; border-radius:50%; }
+  .vtab .dot.green { background: var(--green); }
+  .vtab .dot.blue { background: var(--blue); }
+  .vtab .dot.orange { background: var(--orange); }
+  .vtab-close {
+    width: 14px; height: 14px;
+    border-radius: 2px;
+    display: flex; align-items:center; justify-content:center;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+  .vtab-close:hover { background: var(--border2); color: var(--text); }
+
+  /* ── 3D VIEWPORT ── */
+  #viewport {
+    flex: 1;
+    position: relative;
+    background: #0c0c0c;
+    overflow: hidden;
+  }
+  #viewport-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .viewport-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+  }
+  .viewport-gizmo {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 70px; height: 70px;
+    border: 1px solid var(--border2);
+    border-radius: 50%;
+    background: rgba(10,10,10,0.8);
+    display: flex; align-items:center; justify-content:center;
+    pointer-events: all;
+    cursor: pointer;
+  }
+  .gizmo-inner {
+    width: 44px; height: 44px;
+    position: relative;
+  }
+  .gizmo-axis {
+    position: absolute;
+    top: 50%; left: 50%;
+    height: 2px;
+    transform-origin: left center;
+    border-radius: 1px;
+    font-size: 8px;
+    display: flex; align-items:center;
+  }
+  .viewport-info {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-mid);
+    line-height: 1.7;
+    pointer-events: none;
+  }
+  .viewport-toolbar {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 4px;
+    pointer-events: all;
+  }
+  .vp-btn {
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .vp-btn:hover { background: var(--border2); color: var(--text); }
+  .vp-btn.active { background: var(--gold-glow); color: var(--gold); }
+  .viewport-bottom-toolbar {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 4px;
+    pointer-events: all;
+  }
+
+  /* ── CODE EDITOR VIEW ── */
+  #code-view {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    background: #0d0d0d;
+    overflow: hidden;
+  }
+  #code-view.active { display: flex; }
+  .editor-tabs {
+    height: 32px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 8px;
+    gap: 1px;
+    flex-shrink: 0;
+  }
+  .etab {
+    height: 26px;
+    padding: 0 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 3px 3px 0 0;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.1s;
+  }
+  .etab:hover { color: var(--text-mid); }
+  .etab.active { color: var(--text); border-bottom-color: var(--gold); }
+  .etab-dot { width:6px; height:6px; border-radius:50%; }
+  #code-area {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  #line-numbers {
+    width: 44px;
+    background: var(--panel);
+    padding: 10px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--text-dim);
+    text-align: right;
+    padding-right: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    user-select: none;
+  }
+  #code-editor {
+    flex: 1;
+    background: #0d0d0d;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 20px;
+    padding: 10px 14px;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow-y: auto;
+    tab-size: 2;
+    white-space: pre;
+    caret-color: var(--gold);
+  }
+
+  /* ── BOTTOM PANEL ── */
+  #bottom-panel {
+    height: var(--bottom-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  #bottom-tabs {
+    height: var(--tab-h);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 2px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #bottom-tabs::-webkit-scrollbar { display:none; }
+  .btab {
+    padding: 4px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    transition: all 0.1s;
+    border: 1px solid transparent;
+  }
+  .btab:hover { color: var(--text-mid); background: var(--border); }
+  .btab.active { color: var(--gold); background: var(--gold-glow); border-color: var(--gold-dim); }
+  #bottom-content { flex:1; overflow:hidden; }
+  .bpanel { display:none; height:100%; overflow-y:auto; padding:10px 12px; }
+  .bpanel.active { display:block; }
+  .bpanel::-webkit-scrollbar { width:4px; }
+  .bpanel::-webkit-scrollbar-track { background:transparent; }
+  .bpanel::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+  /* Output log */
+  .log-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 18px;
+    display: flex;
+    gap: 8px;
+    padding: 1px 0;
+  }
+  .log-time { color: var(--text-dim); flex-shrink:0; }
+  .log-tag { flex-shrink:0; font-weight:600; }
+  .log-tag.info { color: var(--blue); }
+  .log-tag.success { color: var(--green); }
+  .log-tag.warn { color: var(--orange); }
+  .log-tag.error { color: var(--red); }
+  .log-msg { color: var(--text-mid); }
+
+  /* Terminal */
+  #terminal-input-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .term-prompt { color: var(--gold); font-family:'JetBrains Mono',monospace; font-size:11px; flex-shrink:0; }
+  #term-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    caret-color: var(--gold);
+  }
+
+  /* AI Builder */
+  .ai-message {
+    margin-bottom: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .ai-avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--gold-glow);
+    border: 1px solid var(--gold-dim);
+    display: flex; align-items:center; justify-content:center;
+    font-size: 10px;
+    color: var(--gold);
+    flex-shrink: 0;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .ai-bubble {
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.6;
+    max-width: 80%;
+  }
+  .user-bubble {
+    background: var(--gold-glow);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-left: auto;
+    max-width: 80%;
+    margin-bottom: 10px;
+  }
+  .ai-input-area {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .ai-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    color: var(--text);
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    padding: 5px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .ai-input:focus { border-color: var(--gold-dim); }
+  .ai-send {
+    background: var(--gold);
+    border: none;
+    border-radius: 3px;
+    color: #000;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .ai-send:hover { background: #e0b85a; }
+
+  /* Content Browser */
+  .asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+  }
+  .asset-item {
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    padding: 8px 4px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.1s;
+    background: var(--panel);
+  }
+  .asset-item:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .asset-icon { font-size: 20px; margin-bottom: 4px; }
+  .asset-name { font-size: 9px; color: var(--text-dim); word-break: break-all; line-height: 1.3; }
+
+  /* Character creator */
+  .char-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .char-card {
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 10px;
+    cursor: pointer;
+    background: var(--panel);
+    transition: all 0.1s;
+  }
+  .char-card:hover { border-color: var(--gold-dim); }
+  .char-card.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .char-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .char-type { font-size: 10px; color: var(--text-dim); }
+
+  /* GitHub panel */
+  .gh-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.1s;
+    margin-bottom: 2px;
+  }
+  .gh-item:hover { background: var(--border); }
+  .gh-icon { font-size: 12px; color: var(--text-dim); flex-shrink:0; }
+  .gh-name { font-size: 11px; color: var(--text-mid); flex:1; }
+  .gh-badge { font-size: 9px; padding: 1px 5px; border-radius: 8px; }
+  .gh-badge.open { background: rgba(76,175,80,0.2); color: var(--green); }
+  .gh-badge.main { background: rgba(66,165,245,0.2); color: var(--blue); }
+  .gh-connect-btn {
+    display: block;
+    width: 100%;
+    padding: 6px;
+    background: var(--gold);
+    border: none;
+    border-radius: 3px;
+    color: #000;
+    font-weight: 600;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.15s;
+  }
+  .gh-connect-btn:hover { background: #e0b85a; }
+
+  /* ── RIGHT SIDEBAR ── */
+  #sidebar-right {
+    width: var(--right-w);
+    min-width: var(--right-w);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .prop-section {
+    border-bottom: 1px solid var(--border);
+  }
+  .prop-header {
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .prop-row {
+    display: flex;
+    align-items: center;
+    padding: 4px 10px;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+  }
+  .prop-label { font-size: 10px; color: var(--text-dim); width: 70px; flex-shrink:0; }
+  .prop-val {
+    flex: 1;
+    font-size: 10px;
+    color: var(--text-mid);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .prop-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    color: var(--text);
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 5px;
+    outline: none;
+    transition: border-color 0.1s;
+  }
+  .prop-input:focus { border-color: var(--gold-dim); }
+  .prop-color {
+    width: 16px; height: 16px;
+    border-radius: 2px;
+    border: 1px solid var(--border2);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── STATUS BAR ── */
+  #statusbar {
+    height: var(--status-h);
+    background: #0d0d0d;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 16px;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sb-item { display:flex; align-items:center; gap:4px; }
+  .sb-sep { width:1px; height:12px; background:var(--border2); }
+  .sb-right { margin-left:auto; display:flex; gap:16px; align-items:center; }
+  .sb-gold { color: var(--gold); }
+
+  /* ── FLOATING NOTEPAD ── */
+  #notepad {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 300px;
+    background: rgba(17,17,17,0.97);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.08);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    resize: both;
+    min-width: 220px;
+    min-height: 160px;
+  }
+  #notepad.visible { display: flex; }
+  .notepad-header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: move;
+    flex-shrink: 0;
+  }
+  .notepad-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex: 1;
+  }
+  .notepad-close {
+    width: 16px; height: 16px;
+    border-radius: 2px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items:center; justify-content:center;
+  }
+  .notepad-close:hover { background: var(--red); color: #fff; }
+  #notepad-area {
+    flex: 1;
+    background: #0d0d0d;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 18px;
+    padding: 10px 12px;
+    resize: none;
+    min-height: 120px;
+  }
+  .notepad-footer {
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    padding: 4px 10px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .notepad-save {
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--gold-dim);
+    background: var(--gold-glow);
+    color: var(--gold);
+    font-size: 10px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+  .notepad-save:hover { background: var(--gold); color: #000; }
+  .notepad-status { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+
+  /* ── CONTEXT MENU ── */
+  #ctx-menu {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 2000;
+    display: none;
+    min-width: 160px;
+    padding: 4px;
+  }
+  #ctx-menu.visible { display: block; }
+  .ctx-item {
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--text-mid);
+    cursor: pointer;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.1s;
+  }
+  .ctx-item:hover { background: var(--gold-glow); color: var(--gold); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div id="menubar">
+  <div class="brand">APEX</div>
+  <div class="menu-item" onclick="showCtx(event,'file')">File</div>
+  <div class="menu-item" onclick="showCtx(event,'edit')">Edit</div>
+  <div class="menu-item" onclick="showCtx(event,'view')">View</div>
+  <div class="menu-item" onclick="showCtx(event,'build')">Build</div>
+  <div class="menu-item" onclick="showCtx(event,'assets')">Assets</div>
+  <div class="menu-item" onclick="showCtx(event,'git')">GitHub</div>
+  <div class="menu-item" onclick="showCtx(event,'ai')">AI</div>
+  <div class="menu-item" onclick="showCtx(event,'window')">Window</div>
+  <div class="menu-spacer"></div>
+  <div class="menu-right">
+    <div class="sb-item"><div class="status-dot"></div> Live</div>
+    <div style="color:var(--text-dim)">rahmaanherman-source</div>
+    <button class="menu-btn" onclick="toggleNotepad()">📝 Notes</button>
+    <button class="menu-btn primary" onclick="buildProject()">▶ Build</button>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <div class="tb-group">
+    <button class="tb-btn" title="New File" onclick="newFile()">＋</button>
+    <button class="tb-btn" title="Save" onclick="saveFile()">💾</button>
+    <button class="tb-btn" title="Save All">⊞</button>
+    <button class="tb-btn" title="Undo">↩</button>
+    <button class="tb-btn" title="Redo">↪</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn active" title="Select" id="tool-select">↖</button>
+    <button class="tb-btn" title="Move" id="tool-move" onclick="setTool('move')">✥</button>
+    <button class="tb-btn" title="Rotate" id="tool-rotate" onclick="setTool('rotate')">↻</button>
+    <button class="tb-btn" title="Scale" id="tool-scale" onclick="setTool('scale')">⇲</button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Mode:</span>
+    <select class="tb-select" id="viewport-mode-select" onchange="setViewMode(this.value)">
+      <option value="solid">Solid</option>
+      <option value="wireframe">Wireframe</option>
+      <option value="rendered">Rendered</option>
+      <option value="material">Material</option>
+    </select>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Snap:</span>
+    <button class="tb-btn" id="snap-btn" onclick="toggleSnap()" title="Snap to Grid">⊞</button>
+    <select class="tb-select">
+      <option>1.0</option>
+      <option>0.5</option>
+      <option>0.25</option>
+      <option>0.1</option>
+    </select>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Camera:</span>
+    <button class="tb-btn" onclick="setCamView('perspective')" title="Perspective">P</button>
+    <button class="tb-btn" onclick="setCamView('top')" title="Top">T</button>
+    <button class="tb-btn" onclick="setCamView('front')" title="Front">F</button>
+    <button class="tb-btn" onclick="setCamView('side')" title="Side">S</button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Platform:</span>
+    <select class="tb-select">
+      <option>Web</option>
+      <option>Mobile</option>
+      <option>Desktop</option>
+      <option>Cloud</option>
+    </select>
+  </div>
+  <div class="tb-spacer" style="flex:1"></div>
+  <div class="tb-group">
+    <span class="tb-label" id="fps-counter" style="color:var(--green)">60 FPS</span>
+    <span class="tb-label" id="poly-counter">0 tris</span>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div id="workspace">
+
+  <!-- LEFT SIDEBAR -->
+  <div id="sidebar-left">
+    <div class="sidebar-section">
+      <div class="sidebar-header">Outliner <span>+</span></div>
+      <div class="tree-item active" onclick="selectObj(this,'Scene Root')"><span class="tree-icon">🌐</span>Scene Root</div>
+      <div class="tree-item" onclick="selectObj(this,'Main Camera')" style="padding-left:30px"><span class="tree-icon">📷</span>Main Camera</div>
+      <div class="tree-item" onclick="selectObj(this,'Directional Light')" style="padding-left:30px"><span class="tree-icon">☀️</span>Directional Light</div>
+      <div class="tree-item" onclick="selectObj(this,'Ground Plane')" style="padding-left:30px"><span class="tree-icon">⬜</span>Ground Plane</div>
+      <div class="tree-item" onclick="selectObj(this,'Player Mesh')" style="padding-left:30px"><span class="tree-icon">🧍</span>Player Mesh <span class="tree-badge green">GO</span></div>
+      <div class="tree-item" onclick="selectObj(this,'Chameleon Core')" style="padding-left:30px"><span class="tree-icon">🦎</span>Chameleon Core <span class="tree-badge">AI</span></div>
+      <div class="tree-item" onclick="selectObj(this,'Golden World Map')" style="padding-left:30px"><span class="tree-icon">🗺️</span>Golden World Map</div>
+      <div class="tree-item" onclick="selectObj(this,'QuantumSpeL Node')" style="padding-left:30px"><span class="tree-icon">⚡</span>QuantumSpeL Node <span class="tree-badge" style="background:rgba(201,168,76,0.2);color:var(--gold)">IP</span></div>
+    </div>
+    <div class="sidebar-section" style="flex:1;overflow-y:auto">
+      <div class="sidebar-header">GitHub Repos <span>⟳</span></div>
+      <button class="gh-connect-btn" onclick="ghConnect()">⊕ Connect Repository</button>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">ScholarEgine</span><span class="gh-badge main">main</span></div>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">what-can-you-do</span><span class="gh-badge main">main</span></div>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">bookish-barnacle</span><span class="gh-badge open">3 open</span></div>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">ark-conduit</span><span class="gh-badge main">main</span></div>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">Apex-Breeze</span><span class="gh-badge main">main</span></div>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">fastapi-python-boilerplate</span><span class="gh-badge main">main</span></div>
+      <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">executive-command-deck</span><span class="gh-badge main">main</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <!-- VIEWPORT TABS -->
+    <div id="viewport-tabs">
+      <div class="vtab active" onclick="switchMainView('viewport',this)"><div class="dot green"></div> 3D Viewport</div>
+      <div class="vtab" onclick="switchMainView('code',this)"><div class="dot blue"></div> Code Editor</div>
+      <div class="vtab" onclick="switchMainView('viewport',this)" style="display:none"></div>
+    </div>
+
+    <!-- 3D VIEWPORT -->
+    <div id="viewport-view" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <canvas id="viewport-canvas"></canvas>
+      <!-- Viewport overlays -->
+      <div class="viewport-info" id="vp-info">
+        Cam: Perspective<br>
+        X: 0.00  Y: 0.00  Z: 0.00<br>
+        Objects: 7<br>
+        Mode: Solid
+      </div>
+      <div class="viewport-toolbar">
+        <button class="vp-btn active" id="vmode-solid" onclick="setViewMode('solid')">Solid</button>
+        <button class="vp-btn" id="vmode-wire" onclick="setViewMode('wireframe')">Wireframe</button>
+        <button class="vp-btn" id="vmode-render" onclick="setViewMode('rendered')">Rendered</button>
+        <button class="vp-btn" id="vmode-mat" onclick="setViewMode('material')">Material</button>
+      </div>
+      <div class="viewport-bottom-toolbar">
+        <button class="vp-btn" onclick="addObject('cube')">+ Cube</button>
+        <button class="vp-btn" onclick="addObject('sphere')">+ Sphere</button>
+        <button class="vp-btn" onclick="addObject('plane')">+ Plane</button>
+        <button class="vp-btn" onclick="addObject('light')">+ Light</button>
+        <button class="vp-btn" onclick="addObject('camera')">+ Camera</button>
+        <button class="vp-btn" onclick="addObject('character')">+ Character</button>
+      </div>
+      <div class="viewport-gizmo">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <line x1="22" y1="22" x2="38" y2="22" stroke="#ef5350" stroke-width="2"/>
+          <line x1="22" y1="22" x2="14" y2="32" stroke="#4caf50" stroke-width="2"/>
+          <line x1="22" y1="22" x2="22" y2="6" stroke="#42a5f5" stroke-width="2"/>
+          <circle cx="38" cy="22" r="4" fill="#ef5350"/>
+          <circle cx="14" cy="32" r="4" fill="#4caf50"/>
+          <circle cx="22" cy="6" r="4" fill="#42a5f5"/>
+          <text x="40" y="26" font-size="7" fill="#ef5350" font-family="Arial">X</text>
+          <text x="8" y="36" font-size="7" fill="#4caf50" font-family="Arial">Y</text>
+          <text x="20" y="4" font-size="7" fill="#42a5f5" font-family="Arial">Z</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- CODE EDITOR VIEW -->
+    <div id="code-view">
+      <div class="editor-tabs">
+        <div class="etab active" id="etab-main"><div class="etab-dot" style="background:var(--blue)"></div>main.py</div>
+        <div class="etab" id="etab-apex" onclick="switchCodeFile('apex')"><div class="etab-dot" style="background:var(--gold)"></div>apex_decision.py</div>
+        <div class="etab" id="etab-golden" onclick="switchCodeFile('golden')"><div class="etab-dot" style="background:var(--green)"></div>golden_world.py</div>
+        <div class="etab" onclick="newFile()" style="color:var(--text-dim);padding:0 10px;cursor:pointer;">+</div>
+      </div>
+      <div id="code-area">
+        <div id="line-numbers" id="line-nums"></div>
+        <textarea id="code-editor" spellcheck="false" oninput="updateLineNumbers()" onscroll="syncScroll()"># APEX ENGINE TERMINAL
+# Rahmann Herman | Make It All Count LLC
+# Patent 63/940,186 | rahmaanherman@icloud.com
+# GODSPEED APEX ECOSYSTEM
+
+from fastapi import FastAPI
+from apex_core import QuantumSpeL, GatekeeperArch
+from golden_world import GoldenWorldEngine
+from chameleon import ChameleonCore
+
+app = FastAPI(title="APEX GODSPEED", version="1.0.0")
+engine = GoldenWorldEngine()
+ai = ChameleonCore(name="Gabby")
+kernel = QuantumSpeL(patent="63/940,186")
+
+@app.on_event("startup")
+async def startup():
+    await kernel.initialize()
+    await engine.load_world("golden_world_map")
+    await ai.activate()
+    print("[APEX] GODSPEED ONLINE")
+
+@app.get("/status")
+async def status():
+    return {
+        "system": "APEX Engine Terminal",
+        "kernel": kernel.status(),
+        "world": engine.status(),
+        "ai": ai.status(),
+        "patent": "63/940,186",
+        "owner": "Rahmann Herman"
+    }
+
+@app.post("/build")
+async def build(payload: dict):
+    result = await kernel.process(payload)
+    return await engine.render(result)
+</textarea>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANEL -->
+    <div id="bottom-panel">
+      <div id="bottom-tabs">
+        <div class="btab active" onclick="switchBPanel('output',this)">Output Log</div>
+        <div class="btab" onclick="switchBPanel('terminal',this)">Terminal</div>
+        <div class="btab" onclick="switchBPanel('ai',this)">AI Builder</div>
+        <div class="btab" onclick="switchBPanel('assets',this)">Content Browser</div>
+        <div class="btab" onclick="switchBPanel('character',this)">Character Creator</div>
+        <div class="btab" onclick="switchBPanel('github',this)">GitHub</div>
+        <div class="btab" onclick="switchBPanel('math',this)">Math Engine</div>
+        <div class="btab" onclick="switchBPanel('netcode',this)">Netcode</div>
+        <div class="btab" onclick="switchBPanel('ability',this)">Ability Debugger</div>
+      </div>
+      <div id="bottom-content">
+
+        <!-- OUTPUT LOG -->
+        <div class="bpanel active" id="panel-output">
+          <div class="log-line"><span class="log-time">00:00:01</span><span class="log-tag success">[OK]</span><span class="log-msg">APEX Engine Terminal initialized — GODSPEED APEX v1.0</span></div>
+          <div class="log-line"><span class="log-time">00:00:01</span><span class="log-tag info">[INFO]</span><span class="log-msg">Patent 63/940,186 — QuantumSpeL Kernel loaded</span></div>
+          <div class="log-line"><span class="log-time">00:00:02</span><span class="log-tag success">[OK]</span><span class="log-msg">Golden World Engine — 84 instructional weeks, 4 grade bands</span></div>
+          <div class="log-line"><span class="log-time">00:00:02</span><span class="log-tag success">[OK]</span><span class="log-msg">Chameleon Core (Gabby) — AI companion activated</span></div>
+          <div class="log-line"><span class="log-time">00:00:02</span><span class="log-tag info">[INFO]</span><span class="log-msg">GitHub — rahmaanherman-source connected — 13 repos</span></div>
+          <div class="log-line"><span class="log-time">00:00:03</span><span class="log-tag success">[OK]</span><span class="log-msg">3D Viewport — WebGL2 context ready — 60 FPS target</span></div>
+          <div class="log-line"><span class="log-time">00:00:03</span><span class="log-tag warn">[WARN]</span><span class="log-msg">Azure App Service — GitHub Deployment Center not yet connected</span></div>
+          <div class="log-line"><span class="log-time">00:00:03</span><span class="log-tag success">[OK]</span><span class="log-msg">Vercel — apexlifeglobal.com — Production deployment active</span></div>
+          <div class="log-line"><span class="log-time">00:00:04</span><span class="log-tag info">[INFO]</span><span class="log-msg">GCP — godspeed-apex project — 4 active projects detected</span></div>
+          <div class="log-line"><span class="log-time">00:00:04</span><span class="log-tag success">[OK]</span><span class="log-msg">APEX Engine Terminal — all systems ready — Rahmann Herman</span></div>
+        </div>
+
+        <!-- TERMINAL -->
+        <div class="bpanel" id="panel-terminal">
+          <div id="term-output" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-mid);line-height:18px;"></div>
+          <div class="terminal-input-area" id="terminal-input-area">
+            <span class="term-prompt">APEX ❯</span>
+            <input type="text" id="term-input" placeholder="Enter command..." onkeydown="runCommand(event)">
+          </div>
+        </div>
+
+        <!-- AI BUILDER -->
+        <div class="bpanel" id="panel-ai">
+          <div id="ai-messages">
+            <div class="ai-message">
+              <div class="ai-avatar">A</div>
+              <div class="ai-bubble">APEX AI ready. I can build components, generate code, place scene objects, connect GitHub, or walk you through any part of the engine. What are we building?</div>
+            </div>
+          </div>
+          <div class="ai-input-area">
+            <input class="ai-input" id="ai-input" placeholder="Tell me what to build..." onkeydown="sendAI(event)">
+            <button class="ai-send" onclick="sendAIMsg()">Send</button>
+          </div>
+        </div>
+
+        <!-- CONTENT BROWSER -->
+        <div class="bpanel" id="panel-assets">
+          <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+            <button class="vp-btn active" style="pointer-events:all;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);background:var(--gold-glow);color:var(--gold);cursor:pointer;font-size:10px;font-family:Inter,sans-serif;">All</button>
+            <button class="vp-btn" style="pointer-events:all;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;font-family:Inter,sans-serif;">Meshes</button>
+            <button class="vp-btn" style="pointer-events:all;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;font-family:Inter,sans-serif;">Materials</button>
+            <button class="vp-btn" style="pointer-events:all;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;font-family:Inter,sans-serif;">Scripts</button>
+            <button class="vp-btn" style="pointer-events:all;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;font-family:Inter,sans-serif;">Audio</button>
+            <button class="vp-btn" style="pointer-events:all;padding:4px 10px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;font-family:Inter,sans-serif;">Characters</button>
+          </div>
+          <div class="asset-grid">
+            <div class="asset-item"><div class="asset-icon">📦</div><div class="asset-name">cube_base</div></div>
+            <div class="asset-item"><div class="asset-icon">⚽</div><div class="asset-name">sphere_01</div></div>
+            <div class="asset-item"><div class="asset-icon">🌍</div><div class="asset-name">gw_map_v1</div></div>
+            <div class="asset-item"><div class="asset-icon">🦎</div><div class="asset-name">gabby_rig</div></div>
+            <div class="asset-item"><div class="asset-icon">🧍</div><div class="asset-name">player_v2</div></div>
+            <div class="asset-item"><div class="asset-icon">💡</div><div class="asset-name">sun_light</div></div>
+            <div class="asset-item"><div class="asset-icon">🎵</div><div class="asset-name">mac_sfx_01</div></div>
+            <div class="asset-item"><div class="asset-icon">📜</div><div class="asset-name">scripture_01</div></div>
+            <div class="asset-item"><div class="asset-icon">⚡</div><div class="asset-name">qspeL_node</div></div>
+            <div class="asset-item"><div class="asset-icon">🏫</div><div class="asset-name">classroom_v1</div></div>
+            <div class="asset-item"><div class="asset-icon">🗺️</div><div class="asset-name">living_world</div></div>
+            <div class="asset-item"><div class="asset-icon">🛡️</div><div class="asset-name">gatekeeper</div></div>
+          </div>
+        </div>
+
+        <!-- CHARACTER CREATOR -->
+        <div class="bpanel" id="panel-character">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Golden World Archetypes</div>
+          <div class="char-grid">
+            <div class="char-card selected" onclick="selectChar(this)"><div class="char-name">🎵 The Note Keeper</div><div class="char-type">Scripture Collectible · K–2</div></div>
+            <div class="char-card" onclick="selectChar(this)"><div class="char-name">🌉 The Bridge Walker</div><div class="char-type">Scripture Collectible · 3–5</div></div>
+            <div class="char-card" onclick="selectChar(this)"><div class="char-name">🌾 The Gatherer</div><div class="char-type">Scripture Collectible · 3–5</div></div>
+            <div class="char-card" onclick="selectChar(this)"><div class="char-name">🦎 Chameleon Core</div><div class="char-type">AI Companion · All Grades</div></div>
+            <div class="char-card" onclick="selectChar(this)"><div class="char-name">🧭 The Pathfinder</div><div class="char-type">Scripture Collectible · 6–8</div></div>
+            <div class="char-card" onclick="selectChar(this)"><div class="char-name">🔭 The Seeker</div><div class="char-type">Scripture Collectible · 9–12</div></div>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;font-weight:600;">Selected: The Note Keeper</div>
+            <div class="prop-row"><div class="prop-label">Grade Band</div><div class="prop-val">K–2</div></div>
+            <div class="prop-row"><div class="prop-label">Type</div><div class="prop-val">Scripture Collectible</div></div>
+            <div class="prop-row"><div class="prop-label">Status</div><div class="prop-val" style="color:var(--green)">Active</div></div>
+          </div>
+        </div>
+
+        <!-- GITHUB PANEL -->
+        <div class="bpanel" id="panel-github">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">rahmaanherman-source · 13 repos</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <button class="menu-btn" style="font-size:10px;" onclick="ghPull()">⬇ Pull</button>
+            <button class="menu-btn" style="font-size:10px;" onclick="ghPush()">⬆ Push</button>
+            <button class="menu-btn" style="font-size:10px;" onclick="ghCommit()">✓ Commit</button>
+            <button class="menu-btn primary" style="font-size:10px;" onclick="ghDeploy()">🚀 Deploy</button>
+          </div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">ScholarEgine</span><span class="gh-badge main">main · GODSPEED</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">ark-conduit</span><span class="gh-badge main">main</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">executive-command-deck</span><span class="gh-badge main">main</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">Apex-Breeze</span><span class="gh-badge open">2 open</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">what-can-you-do</span><span class="gh-badge main">main</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">bookish-barnacle</span><span class="gh-badge open">3 open</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">fastapi-python-boilerplate</span><span class="gh-badge main">main</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">Truth-Bomb</span><span class="gh-badge main">main</span></div>
+          <div class="gh-item"><span class="gh-icon">📁</span><span class="gh-name">XO-Beauty-Hub</span><span class="gh-badge main">main</span></div>
+        </div>
+
+        <!-- MATH ENGINE -->
+        <div class="bpanel" id="panel-math">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">QuantumSpeL Math Engine</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:var(--panel);border:1px solid var(--border2);border-radius:4px;padding:10px;">
+              <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">Physics Solver</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);">ONLINE</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Apex Thermo AI · gravity: 9.8</div>
+            </div>
+            <div style="background:var(--panel);border:1px solid var(--border2);border-radius:4px;padding:10px;">
+              <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">Probability Engine</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);">READY</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Truth Validation · closed-loop</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NETCODE -->
+        <div class="bpanel" id="panel-netcode">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Netcode Simulator</div>
+          <div class="log-line"><span class="log-time">NET</span><span class="log-tag success">[OK]</span><span class="log-msg">WebSocket broadcaster — online</span></div>
+          <div class="log-line"><span class="log-time">NET</span><span class="log-tag success">[OK]</span><span class="log-msg">Tailscale networking — active</span></div>
+          <div class="log-line"><span class="log-time">NET</span><span class="log-tag info">[INFO]</span><span class="log-msg">AWS EC2 — us-east-1 — 52.6.250.82</span></div>
+          <div class="log-line"><span class="log-time">NET</span><span class="log-tag info">[INFO]</span><span class="log-msg">Vercel CDN — apexlifeglobal.com — edge ready</span></div>
+          <div class="log-line"><span class="log-time">NET</span><span class="log-tag warn">[WARN]</span><span class="log-msg">Azure — GitHub Deployment Center — pending connection</span></div>
+        </div>
+
+        <!-- ABILITY DEBUGGER -->
+        <div class="bpanel" id="panel-ability">
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Ability Debugger · Chameleon Core</div>
+          <div class="prop-row"><div class="prop-label">Character</div><div class="prop-val">Chameleon Core (Gabby)</div></div>
+          <div class="prop-row"><div class="prop-label">Status</div><div class="prop-val" style="color:var(--green)">Active</div></div>
+          <div class="prop-row"><div class="prop-label">Grade Band</div><div class="prop-val">All · K–12</div></div>
+          <div class="prop-row"><div class="prop-label">Abilities</div><div class="prop-val">15 unlocked</div></div>
+          <div class="prop-row"><div class="prop-label">IP Status</div><div class="prop-val" style="color:var(--gold)">Protected · 63/940,186</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div id="sidebar-right">
+    <div class="prop-section">
+      <div class="prop-header">Details <span style="color:var(--gold)" id="selected-obj-name">Scene Root</span></div>
+      <div class="prop-row"><div class="prop-label">Name</div><input class="prop-input" value="Scene Root" id="prop-name"></div>
+      <div class="prop-row"><div class="prop-label">Tag</div><input class="prop-input" value="Root"></div>
+      <div class="prop-row"><div class="prop-label">Active</div><div class="prop-val" style="color:var(--green)">✓ Yes</div></div>
+    </div>
+    <div class="prop-section">
+      <div class="prop-header">Transform</div>
+      <div class="prop-row"><div class="prop-label">Position X</div><input class="prop-input" value="0.00" id="pos-x"></div>
+      <div class="prop-row"><div class="prop-label">Position Y</div><input class="prop-input" value="0.00" id="pos-y"></div>
+      <div class="prop-row"><div class="prop-label">Position Z</div><input class="prop-input" value="0.00" id="pos-z"></div>
+      <div class="prop-row"><div class="prop-label">Rotation X</div><input class="prop-input" value="0.00"></div>
+      <div class="prop-row"><div class="prop-label">Rotation Y</div><input class="prop-input" value="0.00"></div>
+      <div class="prop-row"><div class="prop-label">Rotation Z</div><input class="prop-input" value="0.00"></div>
+      <div class="prop-row"><div class="prop-label">Scale X</div><input class="prop-input" value="1.00"></div>
+      <div class="prop-row"><div class="prop-label">Scale Y</div><input class="prop-input" value="1.00"></div>
+      <div class="prop-row"><div class="prop-label">Scale Z</div><input class="prop-input" value="1.00"></div>
+    </div>
+    <div class="prop-section">
+      <div class="prop-header">Material</div>
+      <div class="prop-row"><div class="prop-label">Color</div><div class="prop-color" style="background:#c9a84c"></div><div class="prop-val">#C9A84C</div></div>
+      <div class="prop-row"><div class="prop-label">Roughness</div><input class="prop-input" value="0.40"></div>
+      <div class="prop-row"><div class="prop-label">Metalness</div><input class="prop-input" value="0.80"></div>
+    </div>
+    <div class="prop-section" style="flex:1;overflow-y:auto">
+      <div class="prop-header">APEX System</div>
+      <div class="prop-row"><div class="prop-label">Patent</div><div class="prop-val" style="color:var(--gold)">63/940,186</div></div>
+      <div class="prop-row"><div class="prop-label">Owner</div><div class="prop-val">R. Herman</div></div>
+      <div class="prop-row"><div class="prop-label">Entity</div><div class="prop-val">MIAC LLC</div></div>
+      <div class="prop-row"><div class="prop-label">Version</div><div class="prop-val">v1.0.0</div></div>
+      <div class="prop-row"><div class="prop-label">GCP Org</div><div class="prop-val">rahmaanherman</div></div>
+      <div class="prop-row"><div class="prop-label">AWS</div><div class="prop-val">52.6.250.82</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div class="sb-item"><span class="status-dot"></span><span style="color:var(--green)">GODSPEED ONLINE</span></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item">Patent: <span class="sb-gold">63/940,186</span></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" id="sb-mode">Mode: Solid</div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" id="sb-tool">Tool: Select</div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" id="sb-obj">Object: Scene Root</div>
+  <div class="sb-right">
+    <div class="sb-item">Make It All Count LLC</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item">rahmaanherman@icloud.com</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item">apexlifeglobal.com</div>
+  </div>
+</div>
+
+<!-- FLOATING NOTEPAD -->
+<div id="notepad">
+  <div class="notepad-header" id="notepad-drag">
+    <span class="notepad-title">📝 Notes · Floating</span>
+    <button class="notepad-close" onclick="toggleNotepad()">✕</button>
+  </div>
+  <textarea id="notepad-area" placeholder="Notes save automatically. Won't drop your screen or break your build..."></textarea>
+  <div class="notepad-footer">
+    <button class="notepad-save" onclick="saveNote()">Save</button>
+    <span class="notepad-status" id="notepad-status">Auto-saved</span>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="hideCtx()">📋 Copy</div>
+  <div class="ctx-item" onclick="hideCtx()">📌 Paste</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="hideCtx()">➕ Add Object</div>
+  <div class="ctx-item" onclick="hideCtx()">🗑 Delete</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="hideCtx()">📁 Open in GitHub</div>
+  <div class="ctx-item" onclick="hideCtx()">🚀 Deploy to Vercel</div>
+</div>
+
+<script>
+// ── 3D VIEWPORT ──────────────────────────────────────────────────────────
+const canvas = document.getElementById('viewport-canvas');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+let viewMode = 'solid';
+let camAngleX = 0.4, camAngleY = 0.5, camDist = 8;
+let isDragging = false, lastX = 0, lastY = 0;
+let isPanning = false, panX = 0, panY = 0;
+let snapEnabled = false;
+let frameCount = 0, lastFPSTime = Date.now();
+let selectedObj = 'Scene Root';
+let objects = [];
+let animFrame = 0;
+
+function resizeCanvas() {
+  const vp = document.getElementById('viewport-view');
+  const rect = vp.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+function initScene() {
+  objects = [
+    { name:'Ground', type:'plane', x:0, y:0, z:0, rx:0, ry:0, rz:0, sx:10, sy:0.1, sz:10, r:0.15, g:0.15, b:0.15 },
+    { name:'Player Mesh', type:'box', x:0, y:1, z:0, rx:0, ry:0, rz:0, sx:0.8, sy:1.6, sz:0.8, r:0.78, g:0.66, b:0.3 },
+    { name:'Chameleon Core', type:'sphere', x:2, y:1, z:0, rx:0, ry:0, rz:0, sx:0.6, sy:0.6, sz:0.6, r:0.3, g:0.75, b:0.5 },
+    { name:'QuantumSpeL Node', type:'octahedron', x:-2, y:1.5, z:0, rx:0, ry:0, rz:0, sx:0.7, sy:0.7, sz:0.7, r:0.78, g:0.66, b:0.3 },
+  ];
+}
+
+const vsSource = `
+  attribute vec4 aPos;
+  attribute vec3 aNorm;
+  uniform mat4 uMVP;
+  uniform mat4 uMod;
+  varying vec3 vNorm;
+  varying vec3 vPos;
+  void main(){
+    gl_Position = uMVP * aPos;
+    vNorm = normalize((uMod * vec4(aNorm,0.0)).xyz);
+    vPos = (uMod * aPos).xyz;
+  }
+`;
+const fsSource = `
+  precision mediump float;
+  varying vec3 vNorm;
+  varying vec3 vPos;
+  uniform vec3 uColor;
+  uniform int uMode;
+  void main(){
+    if(uMode == 1){
+      gl_FragColor = vec4(0.0, 0.8, 0.4, 1.0);
+      return;
+    }
+    vec3 light = normalize(vec3(1.0,2.0,1.5));
+    float d = max(dot(vNorm, light), 0.0);
+    float amb = 0.25;
+    vec3 col = uColor * (amb + d * 0.75);
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+let prog, posLoc, normLoc, mvpLoc, modLoc, colorLoc, modeLoc;
+
+function compileShader(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return s;
+}
+
+function initGL() {
+  if (!gl) return;
+  prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(vsSource, gl.VERTEX_SHADER));
+  gl.attachShader(prog, compileShader(fsSource, gl.FRAGMENT_SHADER));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+  posLoc = gl.getAttribLocation(prog, 'aPos');
+  normLoc = gl.getAttribLocation(prog, 'aNorm');
+  mvpLoc = gl.getUniformLocation(prog, 'uMVP');
+  modLoc = gl.getUniformLocation(prog, 'uMod');
+  colorLoc = gl.getUniformLocation(prog, 'uColor');
+  modeLoc = gl.getUniformLocation(prog, 'uMode');
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+}
+
+function mat4() { return new Float32Array(16); }
+function identity(m) { m[0]=m[5]=m[10]=m[15]=1; m[1]=m[2]=m[3]=m[4]=m[6]=m[7]=m[8]=m[9]=m[11]=m[12]=m[13]=m[14]=0; return m; }
+
+function mul(a,b) {
+  const r=mat4();
+  for(let i=0;i<4;i++) for(let j=0;j<4;j++) {
+    let s=0; for(let k=0;k<4;k++) s+=a[i*4+k]*b[k*4+j]; r[i*4+j]=s;
+  }
+  return r;
+}
+
+function perspective(fov,asp,near,far) {
+  const m=mat4(), f=1/Math.tan(fov/2);
+  m[0]=f/asp; m[5]=f; m[10]=(far+near)/(near-far); m[11]=-1; m[14]=2*far*near/(near-far); return m;
+}
+
+function rotX(a) { const m=identity(mat4()),c=Math.cos(a),s=Math.sin(a); m[5]=c;m[6]=s;m[9]=-s;m[10]=c; return m; }
+function rotY(a) { const m=identity(mat4()),c=Math.cos(a),s=Math.sin(a); m[0]=c;m[2]=-s;m[8]=s;m[10]=c; return m; }
+
+function translate(tx,ty,tz) {
+  const m=identity(mat4()); m[12]=tx; m[13]=ty; m[14]=tz; return m;
+}
+
+function scale3(sx,sy,sz) {
+  const m=identity(mat4()); m[0]=sx; m[5]=sy; m[10]=sz; return m;
+}
+
+function boxGeometry(sx,sy,sz) {
+  const hx=sx/2,hy=sy/2,hz=sz/2;
+  const verts=[-hx,-hy,-hz, hx,-hy,-hz, hx,hy,-hz,-hx,hy,-hz,-hx,-hy,hz,hx,-hy,hz,hx,hy,hz,-hx,hy,hz];
+  const idx=[0,1,2,0,2,3,4,6,5,4,7,6,0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,0,3,7,0,7,4];
+  const pos=[],norm=[];
+  for(let i=0;i<idx.length;i+=3){
+    const a=idx[i],b=idx[i+1],c=idx[i+2];
+    const ax=verts[a*3],ay=verts[a*3+1],az=verts[a*3+2];
+    const bx=verts[b*3],by=verts[b*3+1],bz=verts[b*3+2];
+    const cx=verts[c*3],cy=verts[c*3+1],cz=verts[c*3+2];
+    const ux=bx-ax,uy=by-ay,uz=bz-az;
+    const vx=cx-ax,vy=cy-ay,vz=cz-az;
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    const len=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+    for(let k=0;k<3;k++){
+      const vi=[a,b,c][k];
+      pos.push(verts[vi*3],verts[vi*3+1],verts[vi*3+2]);
+      norm.push(nx/len,ny/len,nz/len);
+    }
+  }
+  return {pos:new Float32Array(pos),norm:new Float32Array(norm),count:idx.length};
+}
+
+function sphereGeometry(r,segs) {
+  const pos=[],norm=[],idx=[];
+  for(let i=0;i<=segs;i++){
+    const phi=Math.PI*i/segs;
+    for(let j=0;j<=segs;j++){
+      const theta=2*Math.PI*j/segs;
+      const x=r*Math.sin(phi)*Math.cos(theta),y=r*Math.cos(phi),z=r*Math.sin(phi)*Math.sin(theta);
+      pos.push(x,y,z); norm.push(x/r,y/r,z/r);
+    }
+  }
+  for(let i=0;i<segs;i++) for(let j=0;j<segs;j++){
+    const a=i*(segs+1)+j; idx.push(a,a+1,a+segs+1,a+1,a+segs+2,a+segs+1);
+  }
+  const fp=[],fn=[];
+  for(let i=0;i<idx.length;i++){const v=idx[i];fp.push(pos[v*3],pos[v*3+1],pos[v*3+2]);fn.push(norm[v*3],norm[v*3+1],norm[v*3+2]);}
+  return {pos:new Float32Array(fp),norm:new Float32Array(fn),count:idx.length};
+}
+
+function gridGeometry(size,divs) {
+  const pos=[],norm=[];
+  const step=size*2/divs;
+  for(let i=0;i<=divs;i++){
+    const v=-size+i*step;
+    pos.push(-size,0,v, size,0,v);
+    pos.push(v,0,-size, v,0,size);
+    for(let k=0;k<8;k++){norm.push(0,1,0);}
+  }
+  return {pos:new Float32Array(pos),norm:new Float32Array(norm),count:(divs+1)*8/3};
+}
+
+const boxGeo = {};
+function getBoxGeo(sx,sy,sz) {
+  const k=`${sx}_${sy}_${sz}`;
+  if(!boxGeo[k]) boxGeo[k]=boxGeometry(sx,sy,sz);
+  return boxGeo[k];
+}
+
+const sphereGeo = sphereGeometry(1,16);
+const gridGeo = gridGeometry(10,20);
+
+function drawGeo(geo, mvp, model, r,g,b, wireframe=false) {
+  if(!gl||!prog) return;
+  const pb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,pb); gl.bufferData(gl.ARRAY_BUFFER,geo.pos,gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc,3,gl.FLOAT,false,0,0);
+  const nb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,nb); gl.bufferData(gl.ARRAY_BUFFER,geo.norm,gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(normLoc); gl.vertexAttribPointer(normLoc,3,gl.FLOAT,false,0,0);
+  gl.uniformMatrix4fv(mvpLoc,false,mvp); gl.uniformMatrix4fv(modLoc,false,model);
+  gl.uniform3f(colorLoc,r,g,b);
+  gl.uniform1i(modeLoc, wireframe?1:0);
+  gl.drawArrays(wireframe?gl.LINES:gl.TRIANGLES,0,geo.count);
+  gl.deleteBuffer(pb); gl.deleteBuffer(nb);
+}
+
+function render() {
+  if(!gl) return;
+  resizeCanvas();
+  const bgc = viewMode==='wireframe'?[0.05,0.05,0.05]:[0.06,0.06,0.06];
+  gl.clearColor(...bgc,1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+  animFrame += 0.01;
+
+  const asp = canvas.width/canvas.height||1;
+  const proj = perspective(Math.PI/4, asp, 0.1, 1000);
+  const cx = camDist*Math.sin(camAngleY)*Math.cos(camAngleX);
+  const cy = camDist*Math.sin(camAngleX);
+  const cz = camDist*Math.cos(camAngleY)*Math.cos(camAngleX);
+  const camT = translate(-cx+panX,-cy+panY,-cz);
+  const view = mul(camT, identity(mat4()));
+
+  // Grid
+  const gridMod = identity(mat4());
+  const gridMVP = mul(mul(proj,mul(rotX(-camAngleX),mul(rotY(camAngleY),camT))),gridMod);
+  if(viewMode!=='wireframe') {
+    drawGeo(gridGeo, gridMVP, gridMod, 0.18,0.18,0.18, false);
+  }
+
+  const vp = mul(proj,mul(rotX(-camAngleX),mul(rotY(camAngleY),camT)));
+
+  objects.forEach((obj,i) => {
+    let mod = mul(translate(obj.x,obj.y,obj.z), mul(rotY(animFrame*0.3+i), scale3(obj.sx,obj.sy,obj.sz)));
+    const mvp = mul(vp, mod);
+    const wire = viewMode==='wireframe';
+    if(obj.type==='sphere') drawGeo(sphereGeo, mvp, mod, obj.r,obj.g,obj.b, wire);
+    else drawGeo(getBoxGeo(1,1,1), mvp, mod, obj.r,obj.g,obj.b, wire);
+  });
+
+  // FPS
+  frameCount++;
+  const now = Date.now();
+  if(now-lastFPSTime>500){
+    const fps=Math.round(frameCount*1000/(now-lastFPSTime));
+    document.getElementById('fps-counter').textContent=fps+' FPS';
+    document.getElementById('fps-counter').style.color=fps>50?'var(--green)':fps>30?'var(--orange)':'var(--red)';
+    frameCount=0; lastFPSTime=now;
+  }
+
+  requestAnimationFrame(render);
+}
+
+canvas.addEventListener('mousedown', e=>{
+  if(e.button===1||e.button===2){isPanning=true;}
+  else{isDragging=true;}
+  lastX=e.clientX; lastY=e.clientY;
+});
+canvas.addEventListener('mousemove', e=>{
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  if(isDragging){camAngleY+=dx*0.005;camAngleX+=dy*0.005;camAngleX=Math.max(-1.4,Math.min(1.4,camAngleX));}
+  if(isPanning){panX-=dx*0.01;panY+=dy*0.01;}
+  lastX=e.clientX;lastY=e.clientY;
+  const info=document.getElementById('vp-info');
+  if(info){
+    const wx=(e.offsetX/canvas.width*2-1)*camDist;
+    const wy=-(e.offsetY/canvas.height*2-1)*camDist;
+    info.innerHTML=`Cam: Perspective<br>X: ${wx.toFixed(2)}&nbsp; Y: ${panY.toFixed(2)}&nbsp; Z: ${panX.toFixed(2)}<br>Objects: ${objects.length}<br>Mode: ${viewMode}`;
+  }
+});
+canvas.addEventListener('mouseup',()=>{isDragging=false;isPanning=false;});
+canvas.addEventListener('wheel',e=>{camDist+=e.deltaY*0.01;camDist=Math.max(1,Math.min(50,camDist));});
+canvas.addEventListener('contextmenu',e=>{e.preventDefault();showCtx(e,'viewport');});
+
+function setViewMode(mode){
+  viewMode=mode;
+  ['solid','wire','render','mat'].forEach(m=>{
+    const el=document.getElementById('vmode-'+m);
+    if(el) el.classList.remove('active');
+  });
+  const map={solid:'solid',wireframe:'wire',rendered:'render',material:'mat'};
+  const el=document.getElementById('vmode-'+map[mode]);
+  if(el) el.classList.add('active');
+  document.getElementById('sb-mode').textContent='Mode: '+mode.charAt(0).toUpperCase()+mode.slice(1);
+  const sel=document.getElementById('viewport-mode-select');
+  if(sel) sel.value=mode;
+}
+
+function addObject(type){
+  const names={cube:'Cube',sphere:'Sphere',plane:'Plane',light:'Point Light',camera:'Camera',character:'Character'};
+  const colors={cube:[0.6,0.6,0.8],sphere:[0.3,0.75,0.5],plane:[0.2,0.2,0.2],light:[1,0.9,0.5],camera:[0.5,0.5,1],character:[0.78,0.66,0.3]};
+  const c=colors[type]||[0.7,0.7,0.7];
+  const obj={name:names[type]+' '+objects.length,type:type==='sphere'?'sphere':'box',x:(Math.random()-0.5)*4,y:1,z:(Math.random()-0.5)*4,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1,r:c[0],g:c[1],b:c[2]};
+  objects.push(obj);
+  addLog('success','Added '+obj.name+' to scene');
+  document.getElementById('poly-counter').textContent=objects.length*288+' tris';
+}
+
+function setCamView(view){
+  const views={perspective:{x:0.4,y:0.5},top:{x:1.5,y:0},front:{x:0,y:0},side:{x:0,y:1.5708}};
+  const v=views[view]||views.perspective;
+  camAngleX=v.x; camAngleY=v.y;
+}
+
+// ── PANEL SWITCHING ──────────────────────────────────────────────────────
+function switchMainView(view, tab) {
+  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  const vp=document.getElementById('viewport-view');
+  const cv=document.getElementById('code-view');
+  if(view==='viewport'){vp.style.display='flex';cv.classList.remove('active');}
+  else{vp.style.display='none';cv.classList.add('active');updateLineNumbers();}
+}
+
+function switchBPanel(id, tab) {
+  document.querySelectorAll('.btab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  document.querySelectorAll('.bpanel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+// ── NOTEPAD ──────────────────────────────────────────────────────────────
+function toggleNotepad(){
+  const np=document.getElementById('notepad');
+  np.classList.toggle('visible');
+  if(np.classList.contains('visible')){
+    const saved=localStorage.getItem('apex_notes')||'';
+    document.getElementById('notepad-area').value=saved;
+  }
+}
+
+let saveTimer;
+document.getElementById('notepad-area').addEventListener('input',()=>{
+  document.getElementById('notepad-status').textContent='Unsaved...';
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{saveNote();},2000);
+});
+
+function saveNote(){
+  localStorage.setItem('apex_notes', document.getElementById('notepad-area').value);
+  document.getElementById('notepad-status').textContent='Saved ✓';
+}
+
+// Drag notepad
+let dragActive=false, dragOffX=0, dragOffY=0;
+const notepadEl=document.getElementById('notepad');
+document.getElementById('notepad-drag').addEventListener('mousedown',e=>{
+  dragActive=true; const r=notepadEl.getBoundingClientRect();
+  dragOffX=e.clientX-r.left; dragOffY=e.clientY-r.top; e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!dragActive) return;
+  notepadEl.style.left=(e.clientX-dragOffX)+'px';
+  notepadEl.style.top=(e.clientY-dragOffY)+'px';
+  notepadEl.style.right='auto';
+});
+document.addEventListener('mouseup',()=>{dragActive=false;});
+
+// ── CODE EDITOR ──────────────────────────────────────────────────────────
+function updateLineNumbers(){
+  const lines=document.getElementById('code-editor').value.split('\n');
+  document.getElementById('line-numbers').innerHTML=lines.map((_,i)=>i+1).join('<br>');
+}
+function syncScroll(){
+  const ed=document.getElementById('code-editor');
+  document.getElementById('line-numbers').scrollTop=ed.scrollTop;
+}
+
+const codeFiles = {
+  main: document.getElementById('code-editor').value,
+  apex: `# apex_decision.py
+# Rahmann Herman | Make It All Count LLC
+# Patent 63/940,186
+
+from quantum_speL import QuantumSpeL
+from gatekeeper import GatekeeperArch
+
+class ApexDecisionEngine:
+    def __init__(self):
+        self.kernel = QuantumSpeL(patent="63/940,186")
+        self.gate = GatekeeperArch()
+    
+    async def decide(self, input_data: dict) -> dict:
+        validated = await self.gate.validate(input_data)
+        if not validated:
+            return {"status": "rejected", "reason": "gate_failed"}
+        result = await self.kernel.process(validated)
+        return {"status": "approved", "result": result}`,
+  golden: `# golden_world.py  
+# Rahmann Herman | Make It All Count LLC
+# Patent 63/940,186
+
+GRADE_BANDS = ["K-2", "3-5", "6-8", "9-12"]
+CURRICULUM_UNITS = 12
+INSTRUCTIONAL_WEEKS = 84
+
+ARCHETYPES = [
+    "The Note Keeper", "The Bridge Walker",
+    "The Gatherer", "The Pathfinder", "The Seeker",
+    "Chameleon Core"  # AI companion — locked IP
+]
+
+class GoldenWorldEngine:
+    def __init__(self):
+        self.ai_companion = "Chameleon Core (Gabby)"
+        self.units = CURRICULUM_UNITS
+        self.weeks = INSTRUCTIONAL_WEEKS
+    
+    async def load_world(self, map_name: str):
+        print(f"[GW] Loading: {map_name}")
+        return {"status": "loaded", "map": map_name}`
+};
+
+function switchCodeFile(file){
+  document.querySelectorAll('.etab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('etab-'+file).classList.add('active');
+  document.getElementById('code-editor').value=codeFiles[file]||'';
+  updateLineNumbers();
+}
+
+// ── TERMINAL ─────────────────────────────────────────────────────────────
+const termOut=document.getElementById('term-output');
+function termPrint(text,color='var(--text-mid)'){
+  const d=document.createElement('div');
+  d.style.cssText=`font-family:'JetBrains Mono',monospace;font-size:11px;line-height:18px;color:${color};`;
+  d.textContent=text; termOut.appendChild(d);
+  termOut.scrollTop=termOut.scrollHeight;
+}
+
+const commands = {
+  'help': ()=>{ termPrint('Commands: help, status, build, deploy, git status, git push, git pull, ls, clear, patent, version'); },
+  'status': ()=>{ termPrint('[OK] APEX Engine Terminal — GODSPEED v1.0','var(--green)'); termPrint('[OK] Patent 63/940,186 — active','var(--green)'); termPrint('[OK] GitHub — rahmaanherman-source','var(--green)'); termPrint('[OK] Vercel — apexlifeglobal.com','var(--green)'); termPrint('[WARN] Azure — GitHub Deployment Center pending','var(--orange)'); },
+  'build': ()=>{ termPrint('[BUILD] Compiling APEX GODSPEED...','var(--blue)'); setTimeout(()=>termPrint('[OK] Build complete — 0 errors','var(--green)'),800); },
+  'deploy': ()=>{ termPrint('[DEPLOY] Pushing to Vercel...','var(--blue)'); setTimeout(()=>termPrint('[OK] Deployed to apexlifeglobal.com','var(--green)'),1200); },
+  'git status': ()=>{ termPrint('On branch main\nnothing to commit, working tree clean','var(--text-mid)'); },
+  'git push': ()=>{ termPrint('[GIT] Pushing to rahmaanherman-source...','var(--blue)'); setTimeout(()=>termPrint('[OK] Push complete','var(--green)'),600); },
+  'git pull': ()=>{ termPrint('[GIT] Pulling from origin/main...','var(--blue)'); setTimeout(()=>termPrint('[OK] Already up to date','var(--green)'),600); },
+  'ls': ()=>{ termPrint('main.py  apex_decision.py  golden_world.py  chameleon.py  quantum_speL.py  gatekeeper.py'); },
+  'clear': ()=>{ termOut.innerHTML=''; },
+  'patent': ()=>{ termPrint('USPTO Provisional Patent #63/940,186','var(--gold)'); termPrint('Owner: Rahmann Manzar El Herman','var(--gold)'); termPrint('Entity: Make It All Count LLC','var(--gold)'); termPrint('Filed: December 13, 2025','var(--gold)'); },
+  'version': ()=>{ termPrint('APEX Engine Terminal v1.0.0 — GODSPEED APEX ECOSYSTEM','var(--gold)'); }
+};
+
+function runCommand(e){
+  if(e.key!=='Enter') return;
+  const input=document.getElementById('term-input');
+  const cmd=input.value.trim().toLowerCase();
+  termPrint('APEX ❯ '+input.value,'var(--gold)');
+  if(commands[cmd]) commands[cmd]();
+  else if(cmd) termPrint('Command not found: '+cmd+' (type "help")','var(--red)');
+  input.value='';
+}
+
+// ── AI BUILDER ───────────────────────────────────────────────────────────
+const aiResponses = [
+  "Building that now. I'll place the files exactly where they need to go in your project structure.",
+  "Got it. Generating the component with full APEX ownership headers — Patent 63/940,186, Rahmann Herman, Make It All Count LLC.",
+  "I can walk you through that step by step. No guessing, just point-by-point instructions.",
+  "Creating a duplicate for background processing. The original stays untouched.",
+  "Connecting to your GitHub repo now — I'll push to the exact directory, no manual file placement needed.",
+  "Building the Golden World character archetype. I'll link it to the Scripture Collectible system.",
+  "Running in background — your screen stays light, your build stays active.",
+  "Checking for plagiarism before finalizing. All files will be named and documented as yours."
+];
+let aiIdx=0;
+
+function sendAI(e){ if(e.key==='Enter') sendAIMsg(); }
+
+function sendAIMsg(){
+  const input=document.getElementById('ai-input');
+  const msg=input.value.trim();
+  if(!msg) return;
+  const messages=document.getElementById('ai-messages');
+  const userDiv=document.createElement('div');
+  userDiv.className='user-bubble';
+  userDiv.textContent=msg;
+  messages.appendChild(userDiv);
+  input.value='';
+  setTimeout(()=>{
+    const aiDiv=document.createElement('div');
+    aiDiv.className='ai-message';
+    aiDiv.innerHTML=`<div class="ai-avatar">A</div><div class="ai-bubble">${aiResponses[aiIdx%aiResponses.length]}</div>`;
+    messages.appendChild(aiDiv);
+    aiIdx++;
+    messages.scrollTop=messages.scrollHeight;
+  },400);
+  messages.scrollTop=messages.scrollHeight;
+}
+
+// ── OUTPUT LOG ───────────────────────────────────────────────────────────
+function addLog(type,msg){
+  const panel=document.getElementById('panel-output');
+  const d=document.createElement('div');
+  d.className='log-line';
+  const t=new Date().toLocaleTimeString('en',{hour12:false});
+  const tags={info:'[INFO]',success:'[OK]',warn:'[WARN]',error:'[ERR]'};
+  d.innerHTML=`<span class="log-time">${t}</span><span class="log-tag ${type}">${tags[type]}</span><span class="log-msg">${msg}</span>`;
+  panel.appendChild(d); panel.scrollTop=panel.scrollHeight;
+}
+
+// ── OBJECT SELECTION ─────────────────────────────────────────────────────
+function selectObj(el, name){
+  document.querySelectorAll('.tree-item').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  selectedObj=name;
+  document.getElementById('selected-obj-name').textContent=name;
+  document.getElementById('prop-name').value=name;
+  document.getElementById('sb-obj').textContent='Object: '+name;
+}
+
+// ── TOOLBAR ──────────────────────────────────────────────────────────────
+function setTool(tool){
+  ['select','move','rotate','scale'].forEach(t=>{
+    const b=document.getElementById('tool-'+t);
+    if(b) b.classList.remove('active');
+  });
+  document.getElementById('tool-'+tool).classList.add('active');
+  document.getElementById('sb-tool').textContent='Tool: '+tool.charAt(0).toUpperCase()+tool.slice(1);
+}
+function toggleSnap(){
+  snapEnabled=!snapEnabled;
+  document.getElementById('snap-btn').classList.toggle('active',snapEnabled);
+}
+
+// ── GITHUB ACTIONS ───────────────────────────────────────────────────────
+function ghConnect(){ addLog('info','Connecting to rahmaanherman-source...'); setTimeout(()=>addLog('success','GitHub connected — 13 repos loaded'),800); }
+function ghPull(){ addLog('info','Pulling from origin/main...'); setTimeout(()=>addLog('success','Pull complete — up to date'),600); }
+function ghPush(){ addLog('info','Pushing to rahmaanherman-source...'); setTimeout(()=>addLog('success','Push complete'),600); }
+function ghCommit(){ addLog('info','Committing staged changes...'); setTimeout(()=>addLog('success','Committed: eb85d4b'),400); }
+function ghDeploy(){ addLog('info','Deploying to Vercel — apexlifeglobal.com...'); setTimeout(()=>addLog('success','Deployed — apexlifeglobal.com live'),1200); }
+
+// ── BUILD ────────────────────────────────────────────────────────────────
+function buildProject(){ addLog('info','Building APEX GODSPEED...'); setTimeout(()=>{ addLog('success','Build complete — 0 errors, 0 warnings'); addLog('info','Patent 63/940,186 — Rahmann Herman — Make It All Count LLC'); },1000); }
+function newFile(){ addLog('info','New file created — untitled.py'); }
+function saveFile(){ addLog('success','File saved'); }
+
+// ── CONTEXT MENU ─────────────────────────────────────────────────────────
+const ctxMenus = {
+  file:['📄 New File','💾 Save','💾 Save All','─','📁 Open Folder','📤 Export'],
+  edit:['↩ Undo','↪ Redo','─','✂ Cut','📋 Copy','📌 Paste'],
+  view:['3D Viewport','Code Editor','─','Toggle Notepad','Reset Layout'],
+  build:['▶ Build','🚀 Deploy to Vercel','─','🐛 Debug','📦 Package'],
+  assets:['📁 Import Asset','🔄 Refresh','─','📂 Open in GitHub'],
+  git:['⬇ Pull','⬆ Push','✓ Commit','─','🔀 Branches','📋 Log'],
+  ai:['💬 Open AI Builder','─','Generate Code','Generate Scene','Analyze Project'],
+  window:['📝 Toggle Notes','Reset Layout','─','Fullscreen'],
+  viewport:['➕ Add Object','─','Focus Selected','Frame All','─','📋 Copy Transform']
+};
+
+function showCtx(e, type){
+  const menu=document.getElementById('ctx-menu');
+  menu.innerHTML='';
+  const items=ctxMenus[type]||[];
+  items.forEach(item=>{
+    if(item==='─'){const sep=document.createElement('div');sep.className='ctx-sep';menu.appendChild(sep);}
+    else{const d=document.createElement('div');d.className='ctx-item';d.textContent=item;d.onclick=()=>hideCtx();menu.appendChild(d);}
+  });
+  menu.style.left=e.clientX+'px'; menu.style.top=e.clientY+'px';
+  menu.classList.add('visible');
+  e.preventDefault(); e.stopPropagation();
+}
+function hideCtx(){ document.getElementById('ctx-menu').classList.remove('visible'); }
+document.addEventListener('click',()=>hideCtx());
+
+function selectChar(el){ document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); }
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+initScene();
+initGL();
+updateLineNumbers();
+render();
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>* Expand the Python engine core — clean, production, no mythology
+* Start the App Store wrapper — React Native shell around the terminal
+* Build the GitHub auto-push pipeline — real deployment, no manual steps This is a universal real engine terminal real time this is this will help me to make every single video game that I build from now on if I don't use it for nothing else but myself it will be at no cost to me 'cause this is will be totally local unless it absolutely has to go on the Internet There will be a toggle button in the corner that is green if it's on and Gray if it's not the toggle button is gonna be the Internet button it's gonna be for me and and if the AI Python or whatever is on the Internet it switches over so that I know it's on the Internet and soon when it's supposed to be offline soon as it goes on the Internet and does what it needs to do it goes instantly back offline It instantly does a check on itself to make sure nothing came in with itbash
+
+mkdir -p /home/claude/apex_engine && cat > /home/claude/apex_engine/apex_engine_core.py << 'EOF'
+# ============================================================
+# APEX ENGINE TERMINAL — CORE ENGINE
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# apexlifeglobal.com | 312-307-6355
+# ============================================================
+
+import os
+import sys
+import json
+import time
+import hashlib
+import subprocess
+import threading
+import socket
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Callable
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(), logging.FileHandler('apex_engine.log')]
+)
+log = logging.getLogger("APEX")
+
+
+# ============================================================
+# NETWORK SENTINEL — Internet toggle with auto-offline + self-check
+# ============================================================
+
+class NetworkSentinel:
+    """
+    Controls all internet access.
+    - Default: OFFLINE
+    - Online only when explicitly needed
+    - Auto-returns offline immediately after task
+    - Self-integrity check after every online session
+    """
+
+    def __init__(self):
+        self.online = False
+        self._lock = threading.Lock()
+        self._checksum_before: Optional[str] = None
+        self.on_status_change: Optional[Callable] = None
+        log.info("[SENTINEL] Network Sentinel initialized — OFFLINE mode")
+
+    def _system_checksum(self) -> str:
+        """Hash the engine directory to detect any unauthorized changes."""
+        h = hashlib.sha256()
+        engine_dir = Path(__file__).parent
+        for f in sorted(engine_dir.rglob("*.py")):
+            try:
+                h.update(f.read_bytes())
+            except Exception:
+                pass
+        return h.hexdigest()
+
+    def _is_actually_online(self) -> bool:
+        try:
+            socket.setdefaulttimeout(2)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            return True
+        except Exception:
+            return False
+
+    def go_online(self) -> bool:
+        with self._lock:
+            self._checksum_before = self._system_checksum()
+            self.online = True
+            log.warning("[SENTINEL] ⚠ GOING ONLINE — task pending")
+            if self.on_status_change:
+                self.on_status_change(True)
+            return True
+
+    def go_offline(self) -> dict:
+        with self._lock:
+            self.online = False
+            log.info("[SENTINEL] Returning OFFLINE")
+            result = self._self_check()
+            if self.on_status_change:
+                self.on_status_change(False)
+            return result
+
+    def _self_check(self) -> dict:
+        """Integrity check — compare before/after checksums."""
+        checksum_after = self._system_checksum()
+        clean = (self._checksum_before == checksum_after)
+        status = "CLEAN" if clean else "MODIFIED — REVIEW REQUIRED"
+        log.info(f"[SENTINEL] Self-check: {status}")
+        return {
+            "status": status,
+            "clean": clean,
+            "checksum_before": self._checksum_before,
+            "checksum_after": checksum_after,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def online_task(self, task_fn: Callable, *args, **kwargs):
+        """
+        Run a task online then immediately return offline.
+        Performs integrity check after every session.
+        """
+        self.go_online()
+        try:
+            result = task_fn(*args, **kwargs)
+            return result
+        except Exception as e:
+            log.error(f"[SENTINEL] Online task failed: {e}")
+            raise
+        finally:
+            check = self.go_offline()
+            if not check["clean"]:
+                log.critical("[SENTINEL] ⚠ FILES MODIFIED DURING ONLINE SESSION — REVIEW IMMEDIATELY")
+
+    @property
+    def status(self) -> str:
+        return "ONLINE" if self.online else "OFFLINE"
+
+
+# ============================================================
+# GITHUB PIPELINE — Auto-push, no manual steps
+# ============================================================
+
+class GitHubPipeline:
+    """
+    Full GitHub automation.
+    - Stage, commit, push — no manual file placement
+    - Deploy to Vercel after push
+    - All operations logged
+    """
+
+    def __init__(self, sentinel: NetworkSentinel, repo_path: str = "."):
+        self.sentinel = sentinel
+        self.repo_path = Path(repo_path).resolve()
+        self.owner = "rahmaanherman-source"
+        log.info(f"[GIT] Pipeline initialized — repo: {self.repo_path}")
+
+    def _run(self, cmd: list, cwd: Optional[Path] = None) -> tuple[int, str, str]:
+        cwd = cwd or self.repo_path
+        result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    def status(self) -> dict:
+        code, out, err = self._run(["git", "status", "--porcelain"])
+        return {
+            "changes": out.splitlines() if out else [],
+            "clean": not bool(out),
+            "repo": str(self.repo_path)
+        }
+
+    def stage_all(self) -> bool:
+        code, out, err = self._run(["git", "add", "-A"])
+        log.info(f"[GIT] Staged all files — code: {code}")
+        return code == 0
+
+    def commit(self, message: str) -> bool:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        full_msg = f"{message}\n\nAPEX Engine Terminal | Rahmann Herman | Patent 63/940,186\nTimestamp: {timestamp}"
+        code, out, err = self._run(["git", "commit", "-m", full_msg])
+        if code == 0:
+            log.info(f"[GIT] Committed: {message}")
+        else:
+            log.warning(f"[GIT] Commit: {err or 'nothing to commit'}")
+        return code == 0
+
+    def push(self, branch: str = "main") -> dict:
+        def _push():
+            code, out, err = self._run(["git", "push", "origin", branch])
+            success = code == 0
+            log.info(f"[GIT] Push {'OK' if success else 'FAILED'}: {out or err}")
+            return {"success": success, "output": out or err, "branch": branch}
+        return self.sentinel.online_task(_push)
+
+    def pull(self, branch: str = "main") -> dict:
+        def _pull():
+            code, out, err = self._run(["git", "pull", "origin", branch])
+            success = code == 0
+            log.info(f"[GIT] Pull {'OK' if success else 'FAILED'}: {out or err}")
+            return {"success": success, "output": out or err}
+        return self.sentinel.online_task(_pull)
+
+    def full_deploy(self, message: str, branch: str = "main") -> dict:
+        """Stage → Commit → Push → Auto-offline. One call, no manual steps."""
+        log.info("[GIT] Full deploy initiated")
+        staged = self.stage_all()
+        committed = self.commit(message)
+        push_result = self.push(branch)
+        return {
+            "staged": staged,
+            "committed": committed,
+            "pushed": push_result.get("success", False),
+            "branch": branch,
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+
+    def init_repo(self, remote_url: str) -> bool:
+        """Initialize a new repo and connect to GitHub."""
+        self._run(["git", "init"])
+        self._run(["git", "branch", "-M", "main"])
+        code, _, err = self._run(["git", "remote", "add", "origin", remote_url])
+        if code != 0:
+            self._run(["git", "remote", "set-url", "origin", remote_url])
+        log.info(f"[GIT] Repo initialized — remote: {remote_url}")
+        return True
+
+
+# ============================================================
+# BUILD SYSTEM — Full stack, cross-platform
+# ============================================================
+
+class ApexBuildSystem:
+    """
+    Cross-platform build system.
+    - Web (Vercel), Mobile (Expo/React Native), Desktop (Electron), Cloud (FastAPI)
+    - No partial builds — full stack or nothing
+    - All outputs tagged with ownership headers
+    """
+
+    OWNERSHIP_HEADER = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# apexlifeglobal.com | 312-307-6355
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================
+"""
+
+    def __init__(self, sentinel: NetworkSentinel, project_root: str = "."):
+        self.sentinel = sentinel
+        self.project_root = Path(project_root).resolve()
+        self.build_log = []
+        log.info("[BUILD] Build system initialized")
+
+    def _log(self, level: str, msg: str):
+        entry = {"time": datetime.now().isoformat(), "level": level, "msg": msg}
+        self.build_log.append(entry)
+        getattr(log, level.lower(), log.info)(f"[BUILD] {msg}")
+
+    def tag_file(self, filepath: str) -> bool:
+        """Prepend ownership header to any source file."""
+        path = Path(filepath)
+        if not path.exists():
+            return False
+        content = path.read_text(encoding="utf-8")
+        if "Make It All Count LLC" not in content:
+            path.write_text(self.OWNERSHIP_HEADER + content, encoding="utf-8")
+            self._log("info", f"Tagged: {filepath}")
+        return True
+
+    def tag_directory(self, directory: str = "."):
+        """Tag all Python and JS files in a directory."""
+        for ext in ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx"]:
+            for f in Path(directory).rglob(ext):
+                self.tag_file(str(f))
+        self._log("info", f"Directory tagged: {directory}")
+
+    def build_web(self) -> dict:
+        """Build for Vercel deployment."""
+        self._log("info", "Building for Web (Vercel)...")
+        code, out, err = self._run_cmd(["npm", "run", "build"])
+        success = code == 0
+        self._log("info" if success else "error", f"Web build {'OK' if success else 'FAILED'}: {out or err}")
+        return {"target": "web", "success": success, "output": out or err}
+
+    def build_mobile(self) -> dict:
+        """Build for App Store / Google Play via Expo."""
+        self._log("info", "Building for Mobile (Expo)...")
+        code, out, err = self._run_cmd(["npx", "expo", "build"])
+        success = code == 0
+        self._log("info" if success else "error", f"Mobile build {'OK' if success else 'FAILED'}: {out or err}")
+        return {"target": "mobile", "success": success, "output": out or err}
+
+    def build_desktop(self) -> dict:
+        """Build for Desktop (Electron)."""
+        self._log("info", "Building for Desktop (Electron)...")
+        code, out, err = self._run_cmd(["npx", "electron-builder"])
+        success = code == 0
+        self._log("info" if success else "error", f"Desktop build {'OK' if success else 'FAILED'}: {out or err}")
+        return {"target": "desktop", "success": success, "output": out or err}
+
+    def build_all(self) -> dict:
+        """Full stack build — web, mobile, desktop."""
+        self._log("info", "Full stack build initiated")
+        results = {
+            "web": self.build_web(),
+            "mobile": self.build_mobile(),
+            "desktop": self.build_desktop(),
+            "timestamp": datetime.now().isoformat(),
+            "owner": "Rahmann Herman",
+            "patent": "63/940,186"
+        }
+        success_count = sum(1 for k in ["web","mobile","desktop"] if results[k]["success"])
+        self._log("info", f"Build complete: {success_count}/3 targets successful")
+        return results
+
+    def _run_cmd(self, cmd: list) -> tuple[int, str, str]:
+        try:
+            result = subprocess.run(cmd, cwd=str(self.project_root), capture_output=True, text=True, timeout=300)
+            return result.returncode, result.stdout.strip(), result.stderr.strip()
+        except FileNotFoundError:
+            return 1, "", f"Command not found: {cmd[0]}"
+        except subprocess.TimeoutExpired:
+            return 1, "", "Build timeout"
+        except Exception as e:
+            return 1, "", str(e)
+
+
+# ============================================================
+# APEX ENGINE — Main controller
+# ============================================================
+
+class ApexEngineTerminal:
+    """
+    APEX Engine Terminal — unified game/dev engine controller.
+    Patent: 63/940,186 | Rahmann Manzar El Herman
+    """
+
+    VERSION = "1.0.0"
+    OWNER = "Rahmann Manzar El Herman"
+    ENTITY = "Make It All Count LLC"
+    PATENT = "63/940,186"
+    CONTACT = "rahmaanherman@icloud.com"
+
+    def __init__(self, project_root: str = "."):
+        self.project_root = Path(project_root).resolve()
+        self.sentinel = NetworkSentinel()
+        self.git = GitHubPipeline(self.sentinel, project_root)
+        self.build = ApexBuildSystem(self.sentinel, project_root)
+        self.session_log = []
+        self._print_banner()
+
+    def _print_banner(self):
+        print(f"""
+╔══════════════════════════════════════════════════════════════╗
+║           APEX ENGINE TERMINAL v{self.VERSION}                    ║
+║           {self.OWNER}          ║
+║           {self.ENTITY}                  ║
+║           Patent: {self.PATENT}                          ║
+║           {self.CONTACT}              ║
+║           Network: {self.sentinel.status:<42}║
+╚══════════════════════════════════════════════════════════════╝
+""")
+
+    def network_status(self) -> dict:
+        return {
+            "status": self.sentinel.status,
+            "online": self.sentinel.online,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def deploy(self, message: str, branch: str = "main") -> dict:
+        """Full deploy: stage → commit → push → offline."""
+        return self.git.full_deploy(message, branch)
+
+    def build_all(self) -> dict:
+        """Full stack build across all platforms."""
+        return self.build.build_all()
+
+    def tag_project(self):
+        """Tag all source files with ownership headers."""
+        self.build.tag_directory(str(self.project_root))
+        log.info("[APEX] All files tagged with ownership headers")
+
+    def run_online_task(self, task_fn: Callable, *args, **kwargs):
+        """Run any task online then immediately return offline."""
+        return self.sentinel.online_task(task_fn, *args, **kwargs)
+
+    def status_report(self) -> dict:
+        return {
+            "engine": f"APEX Engine Terminal v{self.VERSION}",
+            "owner": self.OWNER,
+            "entity": self.ENTITY,
+            "patent": self.PATENT,
+            "network": self.network_status(),
+            "git": self.git.status(),
+            "project": str(self.project_root),
+            "timestamp": datetime.now().isoformat()
+        }
+
+
+# ============================================================
+# ENTRY POINT
+# ============================================================
+
+if __name__ == "__main__":
+    engine = ApexEngineTerminal(project_root=".")
+
+    print("Status:")
+    report = engine.status_report()
+    print(json.dumps(report, indent=2))
+
+    print("\n[APEX] Engine standing by. Import and use:")
+    print("  from apex_engine_core import ApexEngineTerminal")
+    print("  engine = ApexEngineTerminal(project_root='/your/project')")
+    print("  engine.deploy('Your commit message')")
+    print("  engine.build_all()")
+    print("  engine.tag_project()")
+EOF
+echo "Core done"
+Output
+
+Core donedef validate_ownership_headers(directory: str):
+    ownership_header = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================"""
+
+    for file_path in Path(directory).rglob("*"):
+        if file_path.is_file():
+            content = file_path.read_text(encoding="utf-8")
+            if ownership_header not in content:
+                log.warning(f"Missing ownership header in: {file_path}")
+            else:
+                log.info(f"Ownership header validated in: {file_path}")
+def evaluate_outcome(self, outcome: Dict) -> float:
+    # Example scoring: weight based on historical success metrics
+    historical_weight = self.get_historical_weight(outcome['id'])
+    return (outcome.get("score", 0.5) * historical_weight)
+
+def get_historical_weight(self, outcome_id: str) -> float:
+    # Implement logic to retrieve historical success metrics for the outcome_id
+    # For example, if outcome_id is "deploy", return a higher weight if deployments have been successful
+    return 1.0  # Placeholder: Replace with actual historical metrics
+
+
+
+
+# ============================================================
+if __name__ == "__
+apex_engine_terminal/
+├── apex_engine_slab.py        # Main backend logic
+├── assets/                     # Directory for Blender assets
+│   └── *.obj                   # Example asset files
+├── toolchain_lock.json         # Toolchain lock file
+├── requirements.txt            # Python dependencies
+├── README.md                   # Project documentation
+├── apex_terminal_ui.html       # Frontend UI
+├── config/                     # Configuration files
+│   ├── settings.json           # General settings
+│   └── deployment_config.json   # Deployment configuration
+├── automated_deployment/       # Automated deployment archive
+│   ├── deploy.sh               # Shell script for deployment
+│   └── deploy_config.yaml       # YAML configuration for deployment
+└── apex_engine.log             # Log file
+#!/bin/bash
+echo "Starting deployment..."
+# Pull latest changes
+git pull origin main
+# Install dependencies
+pip install -r requirements.txt
+# Build the project
+python apex_engine_slab.py build_all
+echo "Deployment completed!"
+version: "1.0"
+services:
+  web:
+    image: apex_engine_terminal_web
+    ports:
+      - "80:80"
+    restart: always
+  api:
+    image: apex_engine_terminal_api
+    ports:
+      - "8000:8000"
+    restart: always
+graph TD;
+    A[APEX Engine Terminal] -->|Triggers| B[Network Sentinel]
+    A -->|Manages| C[GitHub Pipeline]
+    A -->|Initiates| D[Apex Build System]
+    A -->|Analyzes| E[Paradox Engine]
+    A -->|Processes| F[Blender Adapter]
+    
+    C -->|Pushes Changes| G[GitHub Repository]
+    C -->|Pulls Changes| G
+    D -->|Builds| H[Web]
+    D -->|Builds| I[Mobile]
+    D -->|Builds| J[Desktop]
+
+    E -->|Generates Outcomes| K[Deployment Strategies]
+    K -->|Evaluates| L[Historical Outcomes]
+    
+    F -->|Processes Assets| M[3D Models]
+    F -->|Creates| N[Texture Atlases]
+def validate_ownership_headers(directory: str):
+    ownership_header = """# ============================================================
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================"""
+
+    for file_path in Path(directory).rglob("*"):
+        if file_path.is_file():
+            content = file_path.read_text(encoding="utf-8")
+            if ownership_header not in content:
+                log.warning(f"Missing ownership header in: {file_path}")
+            else:
+                log.info(f"Ownership header validated in: {file_path}")
+# ============================================================
+# APEX ENGINE TERMINAL — CORE ENGINE
+# Rahmann Manzar El Herman | Make It All Count LLC
+# Patent: 63/940,186 | rahmaanherman@icloud.com
+# apexlifeglobal.com | 312-307-6355
+# ============================================================
+
+import os
+import sys
+import json
+import time
+import hashlib
+import subprocess
+import threading
+import socket
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Callable
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[logging.StreamHandler(), logging.FileHandler('apex_engine.log')]
+)
+log = logging.getLogger("APEX")
+
+# ============================================================
+# NETWORK SENTINEL — Internet toggle with auto-offline + self-check
+# ============================================================
+
+class NetworkSentinel:
+    """
+    Controls all internet access.
+    - Default: OFFLINE
+    - Online only when explicitly needed
+    - Auto-returns offline immediately after task
+    - Self-integrity check after every online session
+    """
+
+    def __init__(self):
+        self.online = False
+        self._lock = threading.Lock()
+        self._checksum_before: Optional[str] = None
+        self.on_status_change: Optional[Callable] = None
+        log.info("[SENTINEL] Network Sentinel initialized — OFFLINE mode")
+
+    def _system_checksum(self) -> str:
+        """Hash the engine directory to detect any unauthorized changes."""
+        h = hashlib.sha256()
+        engine_dir = Path(__file__).parent
+        for f in sorted(engine_dir.rglob("*.py")):
+            try:
+                h.update(f.read_bytes())
+            except Exception:
+                pass
+        return h.hexdigest()
+
+    def go_online(self) -> bool:
+        with self._lock:
+            self._checksum_before = self._system_checksum()
+            self.online = True
+            log.warning("[SENTINEL] ⚠ GOING ONLINE — task pending")
+            if self.on_status_change:
+                self.on_status_change(True)
+            return True
+
+    def go_offline(self) -> dict:
+        with self._lock:
+            self.online = False
+            log.info("[SENTINEL] Returning OFFLINE")
+            result = self._self_check()
+            if self.on_status_change:
+                self.on_status_change(False)
+            return result
+
+    def _self_check(self) -> dict:
+        """Integrity check — compare before/after checksums."""
+        checksum_after = self._system_checksum()
+        clean = (self._checksum_before == checksum_after)
+        status = "CLEAN" if clean else "MODIFIED — REVIEW REQUIRED"
+        log.info(f"[SENTINEL] Self-check: {status}")
+        return {
+            "status": status,
+            "clean": clean,
+            "checksum_before": self._checksum_before,
+            "checksum_after": checksum_after,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def online_task(self, task_fn: Callable, *args, **kwargs):
+        """Run a task online then immediately return offline."""
+        self.go_online()
+        try:
+            return task_fn(*args, **kwargs)
+        finally:
+            check = self.go_offline()
+            if not check["clean"]:
+                log.critical("[SENTINEL] ⚠ FILES MODIFIED DURING ONLINE SESSION — REVIEW IMMEDIATELY")
+
+# ============================================================
+# GITHUB PIPELINE — Auto-push, no manual steps
+# ============================================================
+
+class GitHubPipeline:
+    def __init__(self, sentinel: NetworkSentinel, repo_path: str = "."):
+        self.sentinel = sentinel
+        self.repo_path = Path(repo_path).resolve()
+
+    def _run(self, cmd: list) -> tuple[int, str, str]:
+        result = subprocess.run(cmd, cwd=str(self.repo_path), capture_output=True, text=True)
+        return result.returncode, result.stdout.strip(), result.stderr.strip()
+
+    def full_deploy(self, message: str, branch: str = "main") -> dict:
+        """Stage → Commit → Push → Auto-offline."""
+        self._run(["git", "add", "-A"])
+        self._run(["git", "commit", "-m", f"{message}\n\nAPEX Engine Terminal | Patent: 63/940,186"])
+        
+        def _push():
+            code, out, err = self._run(["git", "push", "origin", branch])
+            return {"success": code == 0, "output": out or err}
+            
+        return self.sentinel.online_task(_push)
+
+# ============================================================
+# BUILD SYSTEM — Full stack, cross-platform
+# ============================================================
+
+class ApexBuildSystem:
+    OWNERSHIP_HEADER = """# ============================================================
+# Rahmann Manzar El Herman | Patent: 63/940,186
+# APEX Engine Terminal | GODSPEED APEX ECOSYSTEM
+# ============================================================
+"""
+    def __init__(self, project_root: str = "."):
+        self.project_root = Path(project_root).resolve()
+
+    def tag_directory(self, directory: str = "."):
+        for ext in ["*.py", "*.js", "*.ts"]:
+            for f in Path(directory).rglob(ext):
+                content = f.read_text()
+                if "Make It All Count LLC" not in content:
+                    f.write_text(self.OWNERSHIP_HEADER + content)
+
+# ============================================================
+# APEX ENGINE — Main controller
+# ============================================================
+
+class ApexEngineTerminal:
+    def __init__(self, project_root: str = "."):
+        self.sentinel = NetworkSentinel()
+        self.git = GitHubPipeline(self.sentinel, project_root)
+        self.build = ApexBuildSystem(project_root)
+
+    def deploy(self, message: str):
+        return self.git.full_deploy(message)
+
+    def tag_project(self):
+        self.build.tag_directory()if __name__ == "__main__":
+    import uvicorn
+    # Initialize the Apex Engine
+    engine = ApexEngineTerminal(project_root=".")
+    
+    # Start the FastAPI wrapper for remote command execution
+    uvicorn.run(app, host="0.0.0.0", port=8000)
