@@ -1,4 +1,4 @@
-import type { CapabilityId, ProviderResult, Verification, WorkspaceContext } from "@apex/core";
+import type { CapabilityId, ProviderResult, Verification, WorkspaceContext } from "./core-types";
 
 export interface ApexJob {
   taskId: string;

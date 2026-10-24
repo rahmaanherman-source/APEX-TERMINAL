@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Activity, Box, Brain, Check, ChevronDown, ChevronLeft, ChevronRight,
   CircleDot, Eye, GitBranch, Image as ImageIcon, Layers, Lightbulb,
@@ -12,6 +13,7 @@ const tools = [Move3d, Scissors, Wand2, Box, Maximize2, SlidersHorizontal, GitBr
 const tabs = ['CREATE', 'CHARACTERS', 'WORLDS', 'ANIMATION', 'RENDER'];
 
 export default function CharacterStudioPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('CHARACTERS');
   const [gabbyOpen, setGabbyOpen] = useState(true);
   const [leftOpen, setLeftOpen] = useState(true);
@@ -43,7 +45,7 @@ export default function CharacterStudioPage() {
           <button className="railToggle" onClick={() => setLeftOpen(!leftOpen)} aria-label="Collapse navigation">{leftOpen ? <ChevronLeft/> : <ChevronRight/>}</button>
           {leftOpen && <>
             <div className="railTitle">WORKSPACE</div>
-            {['DASHBOARD','PROJECTS','TOOLS','ENGINES','CONNECTIONS','MARKETPLACE','AUDIT LOG','MEMORY SLABS','SETTINGS'].map((x,i)=><button key={x} className={x==='TOOLS'?'nav active':'nav'}><Layers size={16}/>{x}</button>)}
+            {['DASHBOARD','PROJECTS','TOOLS','ENGINES','CONNECTIONS','MARKETPLACE','AUDIT LOG','MEMORY SLABS','REVENUE','SETTINGS'].map((x,i)=><button key={x} onClick={() => { if (x === 'REVENUE') router.push('/revenue'); }} className={x==='TOOLS'?'nav active':'nav'} aria-label={x==='REVENUE'?'Open Revenue workspace':x}><Layers size={16}/>{x}</button>)}
           </>}
         </aside>
 
