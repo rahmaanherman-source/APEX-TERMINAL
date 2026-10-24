@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS audit_logs_run_date_unique_idx ON audit_logs (run_date);
 CREATE INDEX IF NOT EXISTS audit_logs_run_date_idx ON audit_logs (run_date DESC);
 
 -- Insight overrides are audited as decisions, never as edits to the source metrics.
