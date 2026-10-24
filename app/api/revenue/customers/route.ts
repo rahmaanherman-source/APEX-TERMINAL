@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+// Always run per request: reads live config and data, never baked in at build time.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   // Customer PII must never be served before the existing Viewer/Admin auth is verified.
   return NextResponse.json({

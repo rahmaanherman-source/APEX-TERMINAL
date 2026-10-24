@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
+// Always run per request: reads live config and data, never baked in at build time.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // The current repository has no discoverable canonical web-session/role adapter.
 // Fail closed rather than expose customer PII or pretend a user is an admin.
 export async function GET() {

@@ -2,7 +2,13 @@ import { Pool } from "pg";
 import { getRevenueConfig } from "./config";
 import { fetchShopifyOrders } from "./shopify";
 
-const pool = new Pool({ connectionString: getRevenueConfig().databaseUrl, max: 3 });
+// Created on first use, not at import time: configuration (DATABASE_URL etc.) is only
+// required when a snapshot actually runs, so `next build` never needs production secrets.
+let pool: Pool | null = null;
+function sharedPool(): Pool {
+  if (!pool) pool = new Pool({ connectionString: getRevenueConfig().databaseUrl, max: 3 });
+  return pool;
+}
 
 export function previousCentralDay(now = new Date()) {
   const central = new Date(now.toLocaleString("en-US", { timeZone: "America/Chicago" }));
@@ -23,7 +29,7 @@ export function previousCentralDay(now = new Date()) {
 
 export async function createDailySnapshot(now = new Date()) {
   const { runDate, cutoffIso, cutoff } = previousCentralDay(now);
-  const client = await pool.connect();
+  const client = await sharedPool().connect();
   try {
     await client.query("BEGIN");
     const orders = await fetchShopifyOrders(cutoffIso);
@@ -111,4 +117,4 @@ export async function createDailySnapshot(now = new Date()) {
   }
 }
 
-export async function getPool() { return pool; }
+export async function getPool() { return sharedPool(); }

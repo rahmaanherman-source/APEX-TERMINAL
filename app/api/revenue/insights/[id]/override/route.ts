@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Always run per request: reads live config and data, never baked in at build time.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(_request: NextRequest, context: { params: { id: string } }) {
   // Deliberately fail closed: this endpoint must use the existing authenticated
   // Apex Hub Admin identity and persist actor + reason before overrides are enabled.
