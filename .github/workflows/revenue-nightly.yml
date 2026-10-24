@@ -1,0 +1,32 @@
+name: Revenue nightly snapshot
+
+on:
+  # GitHub cron is UTC and cannot express DST. Invoke at both possible UTC
+  # hours for 03:00 America/Chicago; the endpoint's snapshot date is idempotent.
+  schedule:
+    - cron: "0 8,9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run read-only Revenue snapshot
+        env:
+          REVENUE_BASE_URL: ${{ secrets.APEX_REVENUE_BASE_URL }}
+          REVENUE_CRON_SECRET: ${{ secrets.APEX_REVENUE_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$REVENUE_BASE_URL" || { echo "Missing APEX_REVENUE_BASE_URL"; exit 1; }
+          test -n "$REVENUE_CRON_SECRET" || { echo "Missing APEX_REVENUE_CRON_SECRET"; exit 1; }
+          response="$(curl --fail-with-body --silent --show-error \
+            -X POST "${REVENUE_BASE_URL%/}/api/revenue/cron" \
+            -H "Authorization: Bearer $REVENUE_CRON_SECRET" \
+            -H "Content-Type: application/json")"
+          printf '%s\n' "$response"
+          echo "$response" | grep -q '"execution":"COMPLETED"' || {
+            echo "Snapshot endpoint did not confirm completion"; exit 1;
+          }
