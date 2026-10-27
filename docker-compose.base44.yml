@@ -1,0 +1,45 @@
+# Base44 sandbox dev environment for APEX TERMINAL.
+#
+# The app is a Next.js 14 App Router project that lives entirely in this repo
+# (no database or queue service is required to render or to start it). It is
+# run here FROM THE CLONED SOURCE so edits are picked up without image rebuilds:
+# a plain node runtime image with the repo bind-mounted, dependencies installed
+# from package.json at container start, and the live-reload dev server on the
+# user-facing host port 3000.
+services:
+  web:
+    image: node:22
+    working_dir: /app
+    command:
+      - sh
+      - -ec
+      - |
+        [ -d node_modules ] || npm install --no-audit --no-fund --loglevel=error
+        exec npx next dev --hostname 0.0.0.0 --port 3000
+    environment:
+      # The platform sets BASE44_PREVIEW_MODE=1 for sandbox commands; passing the
+      # bare name through lets the app detect sandbox-only overrides without
+      # hardcoding the value (unset => normal behaviour is preserved).
+      - BASE44_PREVIEW_MODE
+      # Bind mounts often miss filesystem events; force webpack's polling watcher
+      # so hot reload fires inside the sandbox.
+      - WATCHPACK_POLLING=true
+      - NEXT_TELEMETRY_DISABLED=1
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    restart: on-failure
+    healthcheck:
+      # Probes the real app, not just an open port. `node` is already present in
+      # the image, so no extra tooling is needed. start_period covers the first
+      # compile, which is slow on a cold sandbox.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
